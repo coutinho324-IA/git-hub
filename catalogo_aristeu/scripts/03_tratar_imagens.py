@@ -16,13 +16,15 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageFilter
 from rembg import new_session, remove
+from scipy import ndimage
 
 from esrgan_onnx import Upscaler
 
 WORK, FOTOS, PSD, MODELOS, SAIDA = map(Path, sys.argv[1:6])
 MESTRES = SAIDA / "_mestres"
+AMPLIADAS = SAIDA / "_ampliadas"  # cache da ampliação 4x (etapa mais demorada)
 SITE = SAIDA / "png_transparente_1200"
-for d in (MESTRES, SITE):
+for d in (MESTRES, SITE, AMPLIADAS):
     d.mkdir(parents=True, exist_ok=True)
 
 LADO, MARGEM = 1200, 0.90  # canvas 1200x1200, produto ocupa até 90%
@@ -51,6 +53,57 @@ def recortar_alfa(im, limiar=10):
 def tem_transparencia(im):
     a = np.asarray(im.convert("RGBA"))[..., 3]
     return (a < 16).mean() > 0.03
+
+
+def eh_laranja(a):
+    """Laranja claro das caixas atrás das malas no catálogo (~RGB 247,187,111)."""
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    return (r > 215) & (g > 150) & (g < 215) & (b > 60) & (b < 160) & (r - b > 80)
+
+
+def mascara_fundo(im, laranja=False):
+    """Frente = tudo que NÃO é fundo (branco, e opcionalmente laranja) ligado à borda.
+
+    Preserva produto claro que tenha contorno. Retorna (máscara booleana, fração da borda que é fundo).
+    """
+    a = np.asarray(im.convert("RGB")).astype(int)
+    mn, mx = a.min(axis=2), a.max(axis=2)
+    fundo_cor = (mn >= 236) & (mx - mn <= 20)
+    if laranja:
+        fundo_cor |= eh_laranja(a)
+    borda = np.concatenate([fundo_cor[0], fundo_cor[-1], fundo_cor[:, 0], fundo_cor[:, -1]])
+    rot, _ = ndimage.label(fundo_cor)
+    ids = np.unique(np.concatenate([rot[0], rot[-1], rot[:, 0], rot[:, -1]]))
+    fundo = np.isin(rot, ids[ids > 0])
+    frente = ndimage.binary_fill_holes(~fundo)
+    return frente, borda.mean()
+
+
+def remover_fundo(original, ampliada, sessao, laranja=False):
+    """Une a máscara da IA (ISNet) com a máscara de fundo por cor quando o fundo é liso."""
+    rgb = ampliada.convert("RGB")
+    ia = np.asarray(remove(rgb, session=sessao, only_mask=True, post_process_mask=True)).astype(np.float32)
+    frente, frac_fundo = mascara_fundo(original, laranja)
+    if frac_fundo > 0.85:
+        m = Image.fromarray((frente * 255).astype(np.uint8)).resize(rgb.size, Image.LANCZOS)
+        m = m.filter(ImageFilter.GaussianBlur(1.2))
+        alfa = np.maximum(ia, np.asarray(m).astype(np.float32))
+        metodo = "Fundo removido (IA ISNet + máscara por cor do fundo) + ampliação IA 4x"
+    else:
+        alfa = ia
+        metodo = "Fundo removido por IA (ISNet) + ampliação IA 4x"
+    if laranja:  # garante que nenhum resto da caixa laranja fique na imagem
+        chave = ndimage.binary_dilation(eh_laranja(np.asarray(rgb).astype(int)), iterations=2)
+        alfa[chave] = 0
+    # remove fragmentos soltos (textos, sujeira) menores que 1% da maior parte do produto
+    rot, n = ndimage.label(alfa > 128)
+    if n > 1:
+        areas = ndimage.sum(np.ones_like(alfa), rot, index=np.arange(1, n + 1))
+        manter = np.isin(rot, 1 + np.flatnonzero(areas >= areas.max() * 0.01))
+        alfa = alfa * ndimage.binary_dilation(manter, iterations=4)
+    out = rgb.convert("RGBA")
+    out.putalpha(Image.fromarray(np.clip(alfa, 0, 255).astype(np.uint8)))
+    return out, metodo
 
 
 def carregar(fonte):
@@ -99,13 +152,17 @@ def main():
         if max(im.size) > 700:
             f = 700 / max(im.size)
             im = im.resize((round(im.width * f), round(im.height * f)), Image.LANCZOS)
-        ampliada = up.ampliar(im)
+        cache_up = AMPLIADAS / f"{slug(fonte)}.png"
+        if cache_up.exists():
+            ampliada = Image.open(cache_up)
+        else:
+            ampliada = up.ampliar(im)
+            ampliada.save(cache_up)
         if ja_transparente:
             metodo = "Recorte original do catálogo + ampliação IA 4x"
         else:
-            rgb = ampliada.convert("RGB")
-            ampliada = remove(rgb, session=sessao, post_process_mask=True)
-            metodo = "Fundo removido por IA (ISNet) + ampliação IA 4x"
+            # malas: produto sobre caixa laranja -> laranja também é fundo
+            ampliada, metodo = remover_fundo(im, ampliada, sessao, laranja=fonte[4:] in CORTES)
         # limpa ruído de alfa e recorta
         arr = np.asarray(ampliada).copy()
         arr[..., 3][arr[..., 3] < 12] = 0
