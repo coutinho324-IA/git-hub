@@ -114,9 +114,17 @@ def post(itens, logo):
             y += 34
     # uma linha de apoio com a informação do produto (se couber)
     info = (itens[0]["info"] or "").split(". ")[0].rstrip(".")
-    if info and y < 1060:
+    cabe = (1128 - (y + 8)) // 32  # linhas livres antes do botão
+    if info and cabe > 0:
         fi = f(25, "Regular")
-        for ln in quebrar(d, info, fi, W - 120)[: 2 if y < 1030 else 1]:
+        linhas_info = quebrar(d, info, fi, W - 120)
+        if len(linhas_info) > cabe:  # corta com reticências em vez de no meio da frase
+            linhas_info = linhas_info[:cabe]
+            ult = linhas_info[-1]
+            while ult and d.textlength(ult + "…", font=fi) > W - 120:
+                ult = ult.rsplit(" ", 1)[0]
+            linhas_info[-1] = ult.rstrip(" ,;:(/") + "…"
+        for ln in linhas_info:
             d.text((60, y + 8), ln, font=fi, fill=(160, 178, 205))
             y += 32
     # chamada para ação
@@ -142,7 +150,7 @@ def main():
         grupos.setdefault((p["familia"], p["img"]), []).append(p)
     for (fam, img), itens in grupos.items():
         nome = (itens[0]["codigo"] + "_" if len(itens) == 1 and itens[0]["codigo"] else "") + slug(
-            titulo_do_grupo(itens))[:50]
+            titulo_do_grupo(itens))[:50].strip("-")
         arq = f"{nome}.jpg"
         post(itens, logo).save(OUT / arq, quality=92, optimize=True)
         for p in itens:

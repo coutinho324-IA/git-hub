@@ -357,6 +357,8 @@ ALERTA_ITEM = {
     "55021": "Descrição cita BVF-1P, mas a referência é BVS1-P (falta e sequência de fase). Conferir.",
     "55091": "No catálogo o título 'FILTRO DE LINHA MG-3001' aparece repetido sobre a foto dos DPS.",
     "52307": "'ROHS' é selo de conformidade, não marca. Marca não identificada no catálogo.",
+    "55589": "Descrição igual à do 55588; pela seção do catálogo este é o modelo TH (similar). Completar a descrição.",
+    "55588": "Descrição igual à do 55589; pela seção do catálogo este é o modelo TS (similar). Completar a descrição.",
 }
 
 
@@ -485,6 +487,10 @@ for p in produtos:
     elif p["codigo"] in ALERTA_ITEM and p["origem"] == "Catálogo PDF":
         p["alertas"].append(ALERTA_ITEM[p["codigo"]])
 
+for p in produtos:
+    if not p["codigo"] and not any("código" in a.lower() for a in p["alertas"]):
+        p["alertas"].append("Produto sem código no catálogo — informar código do sistema.")
+
 # Mesmo código usado para produtos diferentes
 from collections import defaultdict
 por_cod = defaultdict(list)
@@ -497,10 +503,28 @@ for cod, ps in por_cod.items():
             outros = "; ".join(o["descricao"] for o in ps if o is not p)
             p["alertas"].insert(0, f"CÓDIGO REPETIDO no catálogo para produto diferente: {outros}")
 
+# Códigos diferentes com a mesma descrição -> possível cadastro duplicado
+por_desc = defaultdict(list)
+for p in produtos:
+    if p["codigo"]:
+        por_desc[norm(p["descricao"]).replace(" ", "")].append(p)
+for ps in por_desc.values():
+    cods = {q["codigo"] for q in ps}
+    if len(cods) > 1:
+        for p in ps:
+            outros = sorted(cods - {p["codigo"]})
+            if not any(o in a for o in outros for a in p["alertas"]):
+                p["alertas"].append(f"Mesma descrição do(s) código(s) {', '.join(outros)}: possível cadastro duplicado.")
+
 # Ordem: família (ordem do catálogo) e depois ordem de aparição
 ordem_fam = {f["id"]: i for i, f in enumerate(F)}
+def ordem_natural(texto):
+    return [(0, float(t.replace(",", "."))) if re.fullmatch(r"\d+(?:[.,]\d+)?", t) else (1, t)
+            for t in re.findall(r"\d+(?:[.,]\d+)?|[^\d]+", norm(texto))]
+
+
 for i, p in enumerate(produtos):
-    p["ordem"] = (ordem_fam.get(p["familia"], 999), i)
+    p["ordem"] = (ordem_fam.get(p["familia"], 999), ordem_natural(p["descricao"]), i)
 produtos.sort(key=lambda p: p["ordem"])
 for p in produtos:
     del p["ordem"]

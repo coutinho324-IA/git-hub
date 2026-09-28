@@ -182,9 +182,9 @@ def main():
         if p["codigo"] and len(cods[p["codigo"]]) == 1:
             nome = p["codigo"]
         elif p["codigo"]:
-            nome = f"{p['codigo']}_{slug(p['ref'] or p['descricao'])[:30]}"
+            nome = f"{p['codigo']}_{slug(p['descricao'])[:45].strip('-')}"  # código repetido: diferencia pela descrição
         else:
-            nome = f"SEM-CODIGO_{slug(p['descricao'])[:40]}"
+            nome = f"SEM-CODIGO_{slug(p['descricao'])[:40].strip('-')}"
         p["arquivo"] = f"{nome}.png"
         if p["img"] not in cache:
             m = Image.open(MESTRES / f"{slug(p['img'])}.png")

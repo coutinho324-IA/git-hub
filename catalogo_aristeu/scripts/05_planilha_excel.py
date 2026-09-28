@@ -9,8 +9,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.drawing.image import Image as XLImage
-from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor
-from openpyxl.drawing.xdr import XDRPositiveSize2D
+from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, TwoCellAnchor
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
@@ -41,7 +40,7 @@ wb = Workbook()
 ws = wb.active
 ws.title = "PRODUTOS"
 colunas = [
-    ("IMAGEM", 5.6),
+    ("IMAGEM", 7.5),
     ("CÓDIGO DO PRODUTO", 11),
     ("DESCRIÇÃO", 52),
     ("REFERÊNCIA DO FABRICANTE", 18),
@@ -101,8 +100,11 @@ for r, p in enumerate(base, start=2):
     col_px = int(colunas[0][1] * 7 + 5)
     off_x = max(0, (col_px - MINI) // 2) * PX_EMU
     off_y = 3 * PX_EMU
-    img.anchor = OneCellAnchor(_from=AnchorMarker(col=0, colOff=off_x, row=r - 1, rowOff=off_y),
-                               ext=XDRPositiveSize2D(MINI * PX_EMU, MINI * PX_EMU))
+    # "mover e redimensionar com células": a foto acompanha a linha ao filtrar/ordenar
+    img.anchor = TwoCellAnchor(editAs="twoCell",
+                               _from=AnchorMarker(col=0, colOff=off_x, row=r - 1, rowOff=off_y),
+                               to=AnchorMarker(col=0, colOff=off_x + MINI * PX_EMU, row=r - 1,
+                                               rowOff=off_y + MINI * PX_EMU))
     ws.add_image(img)
 
 ultima = len(base) + 1
