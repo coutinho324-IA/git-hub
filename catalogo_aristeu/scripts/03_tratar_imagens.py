@@ -4,11 +4,12 @@ Saída em <SAIDA>/:
   png_transparente_1200/<CODIGO>.png  -> 1200x1200, fundo transparente (site e catálogo)
   _mestres/<fonte>.png                -> recorte em alta resolução (uso interno: Instagram/Excel)
 
-Uso: python 03_tratar_imagens.py <WORK_DIR> <PASTA_FOTOS_USUARIO> <PASTA_PSD_RENDER> <MODELOS> <SAIDA>
+Uso: python 03_tratar_imagens.py <WORK_DIR> <PASTA_FOTOS_USUARIO> <PASTA_PSD_RENDER> <MODELOS> <SAIDA> [PASTA_FOTOS_WEB]
 """
 import json
 import os
 import re
+import shutil
 import sys
 import unicodedata
 from pathlib import Path
@@ -21,6 +22,8 @@ from scipy import ndimage
 from esrgan_onnx import Upscaler
 
 WORK, FOTOS, PSD, MODELOS, SAIDA = map(Path, sys.argv[1:6])
+WEB = Path(sys.argv[6]) if len(sys.argv) > 6 else None  # fotos baixadas da internet: <CODIGO>.<ext>
+AMPLIAR_ATE = 800  # só amplia com IA quando o maior lado da foto for menor que isso
 MESTRES = SAIDA / "_mestres"
 AMPLIADAS = SAIDA / "_ampliadas"  # cache da ampliação 4x (etapa mais demorada)
 SITE = SAIDA / "png_transparente_1200"
@@ -131,6 +134,12 @@ def carregar(fonte):
         return Image.open(FOTOS / resto).convert("RGBA")
     if tipo == "psd":
         return Image.open(PSD / PSD_ARQ[resto]).convert("RGBA")
+    if tipo == "web":
+        arq = next(f for f in sorted(WEB.glob(f"{resto}.*")) if f.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"))
+        im = Image.open(arq)
+        if im.mode in ("P", "LA", "L", "CMYK", "I;16", "I"):
+            im = im.convert("RGBA" if "transparency" in im.info or im.mode == "LA" else "RGB")
+        return im.convert("RGBA")
     raise ValueError(fonte)
 
 
@@ -148,21 +157,31 @@ def main():
             continue
         im = carregar(fonte)
         ja_transparente = tem_transparencia(im)
-        # imagens muito grandes: limita a entrada para ~700 px antes do 4x
-        if max(im.size) > 700:
-            f = 700 / max(im.size)
-            im = im.resize((round(im.width * f), round(im.height * f)), Image.LANCZOS)
+        origem = {"pdf": "catálogo", "user": "imagem enviada", "psd": "imagem enviada",
+                  "web": "foto da internet"}[fonte.split(":")[0]]
         cache_up = AMPLIADAS / f"{slug(fonte)}.png"
-        if cache_up.exists():
-            ampliada = Image.open(cache_up)
+        if max(im.size) >= AMPLIAR_ATE:  # já tem resolução: não amplia, só limita o tamanho
+            if max(im.size) > 2400:
+                f = 2400 / max(im.size)
+                im = im.resize((round(im.width * f), round(im.height * f)), Image.LANCZOS)
+            ampliada, amp_txt = im.copy(), "resolução original"
         else:
-            ampliada = up.ampliar(im)
-            ampliada.save(cache_up)
+            # imagens médias: limita a entrada para ~700 px antes do 4x
+            if max(im.size) > 700:
+                f = 700 / max(im.size)
+                im = im.resize((round(im.width * f), round(im.height * f)), Image.LANCZOS)
+            if cache_up.exists():
+                ampliada = Image.open(cache_up)
+            else:
+                ampliada = up.ampliar(im)
+                ampliada.save(cache_up)
+            amp_txt = "ampliação IA 4x"
         if ja_transparente:
-            metodo = "Recorte original do catálogo + ampliação IA 4x"
+            metodo = f"Recorte original ({origem}) + {amp_txt}"
         else:
             # malas: produto sobre caixa laranja -> laranja também é fundo
             ampliada, metodo = remover_fundo(im, ampliada, sessao, laranja=fonte[4:] in CORTES)
+            metodo = metodo.replace("ampliação IA 4x", amp_txt) + f" — {origem}"
         # limpa ruído de alfa e recorta
         arr = np.asarray(ampliada).copy()
         arr[..., 3][arr[..., 3] < 12] = 0
@@ -177,7 +196,7 @@ def main():
     cods = {}
     for p in base:
         cods.setdefault(p["codigo"], []).append(p)
-    cache = {}
+    feito = {}  # fonte -> primeiro arquivo gerado (demais códigos com a mesma foto: cópia)
     for p in base:
         if p["codigo"] and len(cods[p["codigo"]]) == 1:
             nome = p["codigo"]
@@ -186,15 +205,17 @@ def main():
         else:
             nome = f"SEM-CODIGO_{slug(p['descricao'])[:40].strip('-')}"
         p["arquivo"] = f"{nome}.png"
-        if p["img"] not in cache:
+        if p["img"] in feito:
+            shutil.copyfile(feito[p["img"]], SITE / p["arquivo"])
+        else:
             m = Image.open(MESTRES / f"{slug(p['img'])}.png")
             caixa = int(LADO * MARGEM)
             f = min(caixa / m.width, caixa / m.height)
             m = m.resize((max(1, round(m.width * f)), max(1, round(m.height * f))), Image.LANCZOS)
             tela = Image.new("RGBA", (LADO, LADO), (0, 0, 0, 0))
             tela.alpha_composite(m, ((LADO - m.width) // 2, (LADO - m.height) // 2))
-            cache[p["img"]] = tela
-        cache[p["img"]].save(SITE / p["arquivo"], optimize=True)
+            tela.save(SITE / p["arquivo"], optimize=True)
+            feito[p["img"]] = SITE / p["arquivo"]
         p["img_metodo"] = relatorio[p["img"]]["metodo"]
         p["img_original"] = relatorio[p["img"]]["tamanho_original"]
         p["img_mestre"] = f"{slug(p['img'])}.png"
