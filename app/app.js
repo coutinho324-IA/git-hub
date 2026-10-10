@@ -1412,30 +1412,36 @@
   }, 250);
 
   // ======================= SEM INTERNET =======================
-  const PAGES_URL = 'https://coutinho324-ia.github.io/git-hub/app/';
+  function storageWorks() {
+    try {
+      const k = '__ajm_teste__';
+      localStorage.setItem(k, '1');
+      localStorage.removeItem(k);
+      return true;
+    } catch (e) { return false; }
+  }
 
   function setupOffline() {
     const status = $('offlineStatus');
-    const setStatus = (state, text, link) => {
+    const setStatus = (state, text) => {
       status.dataset.state = state;
-      status.replaceChildren(document.createTextNode(text));
-      if (link) {
-        const a = document.createElement('a');
-        a.href = link;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        a.textContent = link.replace(/^https:\/\//, '');
-        status.append(' ', a);
-      }
+      status.textContent = text;
     };
     const updateNet = () => { $('netChip').hidden = navigator.onLine !== false; };
     window.addEventListener('online', updateNet);
     window.addEventListener('offline', updateNet);
     updateNet();
+    $('storageWarn').hidden = storageWorks();
 
+    // Arquivo único salvo no celular (dist/Box-AJM.html): já abre sem internet.
+    if (/^(file|content):$/.test(location.protocol)) {
+      setStatus('ready', 'Este arquivo está guardado no celular e abre sem internet.');
+      return;
+    }
+
+    const keepOpen = 'Depois de aberto, o app funciona sem sinal. Abra antes da largada, com internet, e não feche esta página durante a prova.';
     const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
     const ios = /iPhone|iPad|iPod/.test(navigator.userAgent || '');
-    $('iosHint').hidden = !ios || standalone;
 
     let deferred = null;
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -1457,15 +1463,18 @@
 
     const canCache = 'serviceWorker' in navigator && /^https?:$/.test(location.protocol);
     if (!canCache) {
-      setStatus('unsupported', 'Este endereço não guarda o app no aparelho. Para usar sem internet, abra e instale pelo link:', PAGES_URL);
+      setStatus('unsupported', keepOpen);
       return;
     }
     navigator.serviceWorker.register('sw.js')
       .then(() => navigator.serviceWorker.ready)
-      .then(() => setStatus('ready', standalone
-        ? 'Pronto para usar sem internet.'
-        : 'Pronto para usar sem internet. Instale na tela inicial para abrir pelo ícone.'))
-      .catch(() => setStatus('unsupported', 'Este endereço não guarda o app no aparelho. Para usar sem internet, abra e instale pelo link:', PAGES_URL));
+      .then(() => {
+        $('iosHint').hidden = !ios || standalone;
+        setStatus('ready', standalone
+          ? 'Pronto para usar sem internet.'
+          : 'Pronto para usar sem internet. Instale na tela inicial para abrir pelo ícone.');
+      })
+      .catch(() => setStatus('unsupported', keepOpen));
   }
 
   function boot() {
