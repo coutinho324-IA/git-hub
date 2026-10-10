@@ -134,6 +134,11 @@ main.wrap { padding-block: 24px 64px; }
 .brand-text { display: flex; flex-direction: column; min-width: 0; }
 .brand-text strong { font-family: var(--f-display); font-size: var(--step-1); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .brand-text span { font-size: var(--step--1); color: var(--board-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topbar-right { display: flex; align-items: center; gap: 10px; flex: none; }
+.net-chip {
+  font-family: var(--f-display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--step--1);
+  color: var(--board-hi); border: 1px solid var(--board-hi); border-radius: 999px; padding: 1px 8px; white-space: nowrap;
+}
 .mini-clock {
   font-family: var(--f-display); font-weight: 700; font-size: var(--step-2);
   font-variant-numeric: tabular-nums; color: var(--board-hi); letter-spacing: 0.02em;
@@ -293,6 +298,13 @@ table.data .muted { color: var(--muted); }
 .board-row small { color: var(--board-muted); }
 
 .pre-start .btn-go { width: 100%; }
+.offline-box { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; font-size: var(--step--1); color: var(--ink-2); }
+.offline-box p { display: flex; gap: 8px; align-items: baseline; }
+#offlineStatus::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); transform: translateY(-1px); }
+#offlineStatus[data-state="ready"] { color: var(--good-ink); font-weight: 600; }
+#offlineStatus[data-state="ready"]::before { background: var(--good); }
+#offlineStatus[data-state="unsupported"]::before { background: var(--warn); }
+.offline-box a { color: var(--accent); font-weight: 600; word-break: break-all; }
 .driver { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
 .driver-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .driver-id strong { font-family: var(--f-display); font-size: var(--step-3); font-weight: 800; text-transform: uppercase; line-height: 1; }

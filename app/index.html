@@ -3,11 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#101416">
+<meta name="theme-color" content="#111517">
 <title>Box Aristeu Just Motors</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Box AJM">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,7 +25,10 @@
         <span id="brandSub">Endurance de kart · 2 h · 3 paradas</span>
       </div>
     </div>
-    <div class="mini-clock" id="miniClock" title="Tempo restante de prova">2:00:00</div>
+    <div class="topbar-right">
+      <span class="net-chip" id="netChip" hidden>Sem sinal</span>
+      <div class="mini-clock" id="miniClock" title="Tempo restante de prova">2:00:00</div>
+    </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Seções">
     <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano">Plano</button>
@@ -139,6 +147,11 @@
           <label class="field"><span>Quem larga</span><select id="lvStarter"></select></label>
           <p class="hint">O cronômetro roda pelo relógio do aparelho. Deixe a tela ligada e toque em largar junto com a bandeira verde.</p>
           <button type="button" class="btn btn-go" id="btnStart">Largar</button>
+          <div class="offline-box" id="offlineBox">
+            <p id="offlineStatus" data-state="checking">Verificando uso sem internet…</p>
+            <p class="hint" id="iosHint" hidden>No iPhone, use o Safari: toque em Compartilhar e depois em Adicionar à Tela de Início.</p>
+            <button type="button" class="btn btn-ghost" id="btnInstall" hidden>Instalar no celular</button>
+          </div>
         </div>
 
         <!-- Pista -->
@@ -378,6 +391,14 @@
         <li>Exceder a velocidade no pit lane.</li>
         <li>Piloto sem água e sem descanso entre stints.</li>
         <li>Lastro errado na troca, abaixo do peso mínimo.</li>
+      </ul>
+
+      <h2>Celular pronto para a prova</h2>
+      <ul class="checklist">
+        <li>Abra o app com internet uma vez e instale na tela inicial.</li>
+        <li>Coloque o celular em modo avião e abra o app pelo ícone para testar.</li>
+        <li>Bateria cheia e carregador ou bateria externa no box.</li>
+        <li>Som ligado e volume alto para ouvir os bipes do box.</li>
       </ul>
 
       <h2>Confirme no regulamento antes da largada</h2>

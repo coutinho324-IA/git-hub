@@ -16,7 +16,25 @@ O app roda no navegador do celular, sem instalação e sem internet depois de ab
 | **Análise** | Média, melhor volta e consistência de cada piloto, gráfico volta a volta e segundos perdidos em cada parada. |
 | **Manual** | Ficha de cada piloto, regras na pista, placa de box e roteiro da troca, com os números recalculados a partir da configuração. |
 
-## Como usar
+## Usar sem internet (instalar no celular)
+
+O app é publicado no GitHub Pages em **https://coutinho324-ia.github.io/git-hub/** e fica guardado no celular depois da primeira abertura.
+
+1. Com internet, abra o link no celular.
+2. Instale na tela inicial:
+   - **Android (Chrome):** toque em **Instalar no celular** na aba Ao vivo, ou no menu ⋮ → Instalar app.
+   - **iPhone (Safari):** Compartilhar → Adicionar à Tela de Início.
+3. Teste: modo avião ligado, abra pelo ícone **Box AJM**. Na aba Ao vivo deve aparecer "Pronto para usar sem internet".
+
+Quando há sinal, o app baixa atualizações em segundo plano e usa a versão nova na próxima abertura. Os dados da prova ficam no próprio celular.
+
+O link do Claude (artifact) só funciona com internet. Se o sinal cair com ele já aberto, o cronômetro continua, mas ele não abre de novo sem rede.
+
+### Ativar o GitHub Pages (uma vez só)
+
+No GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Depois disso, cada mudança na `main` roda os testes e publica o app sozinha (`.github/workflows/pages.yml`).
+
+## Como usar no computador
 
 Abra `app/index.html` no navegador. Para servir na rede local (útil para abrir no celular):
 
@@ -118,10 +136,17 @@ Lance as respostas na aba Plano. Janelas, prazos e voltas são recalculados.
 
 ```
 app/
-  index.html     interface (4 abas)
-  style.css      visual, tema claro e escuro
-  strategy.js    motor de cálculo, sem DOM (usado pelo app e pelos testes)
-  app.js         interface, cronômetro, box, análise
+  index.html            interface (4 abas)
+  style.css             visual, tema claro e escuro
+  strategy.js           motor de cálculo, sem DOM (usado pelo app e pelos testes)
+  app.js                interface, cronômetro, box, análise
+  sw.js                 guarda o app no celular para abrir sem internet
+  manifest.webmanifest  nome e ícone do app instalado
+  fonts/                fontes Barlow e Saira Condensed (licença SIL OFL)
+  icons/                ícones do app
 tests/
-  strategy.test.js
+  strategy.test.js      cálculos do plano e do modo ao vivo
+  offline.test.js       todos os arquivos do app estão no cache offline
+.github/workflows/
+  pages.yml             roda os testes e publica no GitHub Pages
 ```
