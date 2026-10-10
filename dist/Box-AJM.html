@@ -589,6 +589,13 @@ table.signs td:first-child { white-space: nowrap; font-family: var(--f-display);
 }
 table.meta-table th { white-space: normal; vertical-align: bottom; }
 
+/* Ação de cada turno */
+table.data tr.note-row td { padding-top: 0; }
+table.data tr.note-row input { width: 100%; text-align: left; font-size: var(--step--1); min-height: 34px; }
+table.data tr:has(+ tr.note-row) td { border-bottom: 0; }
+.pcard-note { font-style: italic; color: var(--ink-2); }
+.driver-note { display: block; margin-top: 4px; font-size: var(--step--1); color: var(--ink); background: var(--accent-wash); border-radius: 4px; padding: 2px 8px; }
+
 </style>
 </head>
 <body>
@@ -789,6 +796,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
                 <span class="eyebrow" id="lvStintLabel">Stint 1 de 4</span>
                 <strong id="lvPilot">Kaka</strong>
                 <span class="driver-meta" id="lvMeta"></span>
+                <span class="driver-note" id="lvNote" hidden></span>
               </div>
             </div>
             <dl class="readouts">
@@ -1095,10 +1103,17 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       { id: 'p2', name: 'Guilherme Coutinho', lapSec: 48.4 },
     ],
     order: ['p1', 'p2', 'p1', 'p2'],
-    // Plano da equipe: Kaka (mais rápido) faz stints de 30 min, Guilherme
-    // fica com o resto (~22 min). O último stint fecha a conta.
+    // Plano da equipe: 4 turnos de 26:15 revezando A (Kaka, larga) e B
+    // (Guilherme, fecha). O último turno fecha a conta até a bandeira.
     stintMode: 'custom', // 'equal' | 'custom'
-    customStintMin: [30, 22.1375, 30],
+    customStintMin: [26.25, 26.25, 26.25],
+    // O que o piloto faz em cada turno (editável).
+    stintNotes: [
+      'Largada: escapar do tráfego inicial, sem riscos.',
+      'Pista mais limpa: ritmo constante.',
+      'Segundo turno: foco em consistência.',
+      'Sprint final até a bandeira.',
+    ],
   });
 
   const NUMERIC_KEYS = [
@@ -1154,6 +1169,12 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     const srcCustom = Array.isArray(src.customStintMin) ? src.customStintMin : [];
     cfg.customStintMin = [];
     for (let i = 0; i < n - 1; i++) cfg.customStintMin.push(Math.max(0, num(srcCustom[i], 0)));
+    // Anotação de cada turno. Sem anotações salvas, usa as padrão quando a
+    // prova tem o mesmo número de turnos do padrão.
+    const srcNotes = Array.isArray(src.stintNotes)
+      ? src.stintNotes
+      : (n === DEFAULT_CONFIG.stintNotes.length ? DEFAULT_CONFIG.stintNotes : []);
+    cfg.stintNotes = Array.from({ length: n }, (_, i) => String(srcNotes[i] || '').trim().slice(0, 140));
     if (cfg.stintMode === 'custom' && cfg.customStintMin.every((m) => m === 0) && n > 1) {
       cfg.stintMode = 'equal';
     }
@@ -1356,6 +1377,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       const stintLaps = Math.max(0, d) / pilot.lapSec;
       stints.push({
         index: i,
+        note: cfg.stintNotes[i] || '',
         pilotId: pilot.id,
         pilotName: pilot.name,
         lapSec: pilot.lapSec,
@@ -1695,7 +1717,26 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       order: cfg.order.slice(),
       stintMode: cfg.stintMode,
       customStintMin: cfg.customStintMin.slice(),
+      stintNotes: cfg.stintNotes.slice(),
     };
+  }
+
+  /**
+   * Duração digitada pela equipe, em segundos: "26:15" (min:s), "1:02:30"
+   * (h:min:s) ou minutos com vírgula/ponto ("26,25"). NaN se não entender.
+   */
+  function parseDuration(text) {
+    const t = String(text == null ? '' : text).trim().replace(',', '.');
+    if (!t) return NaN;
+    if (t.includes(':')) {
+      const parts = t.split(':').map((x) => x.trim());
+      if (parts.length > 3 || parts.some((x) => !/^\d+(\.\d+)?$/.test(x))) return NaN;
+      const nums = parts.map(Number);
+      if (nums.slice(1).some((x) => x >= 60)) return NaN;
+      return nums.reduce((acc, x) => acc * 60 + x, 0);
+    }
+    if (!/^\d+(\.\d+)?$/.test(t)) return NaN;
+    return Number(t) * 60;
   }
 
   /** Problemas que impedem salvar a equipe (lista vazia = pode salvar). */
@@ -1731,6 +1772,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       order: keep ? keep.order : undefined,
       stintMode: keep ? keep.stintMode : 'equal',
       customStintMin: keep ? keep.customStintMin : [],
+      stintNotes: keep ? keep.stintNotes : undefined,
     });
   }
 
@@ -1755,6 +1797,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     NEW_PILOT_LAP,
     teamFromConfig,
     planOf,
+    parseDuration,
     validateTeam,
     applyTeam,
     normalizeConfig,
@@ -1838,13 +1881,25 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
 
   // v2: tempos medidos (Kaka 48,05 / Guilherme 48,40) e stints 30/22 min.
   // v3: folga de saída do box de 2 para 3 s (libera em 5:03).
-  const CFG_VERSION = 3;
+  // v4: plano padrão de 4 turnos de 26:15 (A, B, A, B) com a ação de cada turno.
+  const CFG_VERSION = 4;
   const OLD_STINTS_V2 = [30, 22.1625, 30];
+  const OLD_STINTS_V3 = [30, 22.1375, 30];
   const saved = load() || {};
   const fromVersion = saved.cfg ? (saved.cfgVersion || 1) : CFG_VERSION;
   let cfg = KS.normalizeConfig(saved.cfg || KS.DEFAULT_CONFIG);
   if (fromVersion < 2) cfg = migrateCfg(cfg);
   if (fromVersion < 3) cfg = migrateMargin(cfg);
+  if (fromVersion < 4) cfg = migrateStints(cfg);
+
+  /** Quem estava com o plano padrão 30/22 passa para os 4 turnos de 26:15. */
+  function isOldDefaultStints(c) {
+    return c && c.stintMode === 'custom' && (sameStints(c.customStintMin, OLD_STINTS_V2) || sameStints(c.customStintMin, OLD_STINTS_V3));
+  }
+  function migrateStints(c) {
+    if (!isOldDefaultStints(c)) return c;
+    return KS.normalizeConfig({ ...c, customStintMin: KS.DEFAULT_CONFIG.customStintMin.slice() });
+  }
 
   function sameStints(a, b) {
     return Array.isArray(a) && a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) < 1e-6);
@@ -1877,8 +1932,8 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
 
   // Equipes cadastradas. A primeira vem da configuração atual.
   let teams = Array.isArray(saved.teams) && saved.teams.length ? saved.teams : [KS.teamFromConfig(cfg, 't1')];
-  if (fromVersion < 3) {
-    teams = teams.map((t) => (t.plan && sameStints(t.plan.customStintMin, OLD_STINTS_V2)
+  if (fromVersion < 4) {
+    teams = teams.map((t) => (isOldDefaultStints(t.plan)
       ? { ...t, plan: { ...t.plan, customStintMin: KS.DEFAULT_CONFIG.customStintMin.slice() } }
       : t));
   }
@@ -2349,6 +2404,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
             { color: pilotVar(s.pilotId), rect: true, value: s.pilotName },
             { value: `${fmtClock(s.startSec)} → ${fmtClock(s.endSec)}`, label: 'de prova' },
             { value: fmtClock(s.durSec), label: `· ${fmtNum(s.laps, 1)} voltas` },
+            ...(s.note ? [{ value: s.note }] : []),
           ]);
         } else {
           const p = seg.p;
@@ -2378,7 +2434,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     const tbl = $('stintTable');
     tbl.replaceChildren();
     const head = tbl.createTHead().insertRow();
-    for (const [t, num, wide] of [['Stint'], ['Piloto'], ['Min', 1], ['Início', 1, 1], ['Fim', 1, 1], ['Voltas', 1, 1], ['Box', 1]]) {
+    for (const [t, num, wide] of [['Turno'], ['Piloto'], ['Duração', 1], ['Início', 1, 1], ['Fim', 1, 1], ['Voltas', 1, 1], ['Box', 1]]) {
       const th = document.createElement('th');
       th.textContent = t;
       if (num) th.className = 'num';
@@ -2418,26 +2474,25 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       cd.className = 'num';
       if (i < n - 1) {
         const inp = document.createElement('input');
-        inp.type = 'number';
-        inp.step = 'any';
-        inp.min = '0';
-        inp.inputMode = 'decimal';
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
+        inp.autocomplete = 'off';
         inp.id = `st-dur-${i}`;
-        inp.setAttribute('aria-label', `Duração do stint ${i + 1} em minutos`);
-        inp.value = String(Math.round((s.durSec / 60) * 100) / 100);
+        inp.setAttribute('aria-label', `Duração do turno ${i + 1} (minutos:segundos)`);
+        inp.value = fmtClock(s.durSec);
         inp.addEventListener('change', () => {
-          const v = parseFloat(String(inp.value).replace(',', '.'));
-          if (!Number.isFinite(v) || v < 0) { inp.value = String(Math.round((s.durSec / 60) * 100) / 100); return; }
-          cfg.customStintMin = plan.stints.slice(0, n - 1).map((st) => Math.round((st.durSec / 60) * 100) / 100);
-          cfg.customStintMin[i] = v;
+          const sec = KS.parseDuration(inp.value);
+          if (!Number.isFinite(sec) || sec <= 0) { inp.value = fmtClock(s.durSec); return; }
+          cfg.customStintMin = plan.stints.slice(0, n - 1).map((st) => st.durSec / 60);
+          cfg.customStintMin[i] = sec / 60;
           cfg.stintMode = 'custom';
           planNotes = [];
           updatePlan();
         });
         cd.appendChild(inp);
       } else {
-        cd.textContent = fmtNum(s.durSec / 60, 2);
-        cd.title = 'O último stint fecha a conta com o tempo que sobra';
+        cd.textContent = fmtClock(s.durSec);
+        cd.title = 'O último turno fecha a conta com o tempo que sobra até a bandeira';
       }
       const c3 = tr.insertCell(); c3.className = 'num wide-only'; c3.textContent = fmtClock(s.startSec);
       const c4 = tr.insertCell(); c4.className = 'num wide-only'; c4.textContent = fmtClock(s.endSec);
@@ -2445,12 +2500,30 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       const c6 = tr.insertCell(); c6.className = 'num';
       c6.textContent = i < plan.stops.length ? `V${plan.stops[i].lap}` : 'Bandeira';
       if (i >= plan.stops.length) c6.classList.add('muted');
+
+      // Ação do turno, editável, numa linha logo abaixo.
+      const nr = body.insertRow();
+      nr.className = 'note-row';
+      const nc = nr.insertCell();
+      nc.colSpan = 7;
+      const note = document.createElement('input');
+      note.type = 'text';
+      note.maxLength = 140;
+      note.id = `st-note-${i}`;
+      note.placeholder = 'O que o piloto faz neste turno';
+      note.setAttribute('aria-label', `Ação do turno ${i + 1}`);
+      note.value = s.note || '';
+      note.addEventListener('change', () => {
+        cfg.stintNotes[i] = note.value.trim();
+        updatePlan();
+      });
+      nc.appendChild(note);
     });
 
     const notes = [];
     notes.push(cfg.stintMode === 'equal'
-      ? `Stints iguais de ${fmtClock(plan.driveSec / n)}. Edite uma duração para personalizar; o último stint fecha a conta.`
-      : 'Stints personalizados. O último stint fecha a conta com o tempo que sobra.');
+      ? `Turnos iguais de ${fmtClock(plan.driveSec / n)}. Digite uma duração (ex.: 26:15) para mudar; o último turno fecha a conta até a bandeira.`
+      : 'Digite a duração como minutos:segundos (ex.: 26:15). O último turno fecha a conta até a bandeira, descontando as paradas.');
     $('stintHint').textContent = notes.concat(planNotes).join(' ');
   }
 
@@ -2762,6 +2835,9 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     const meta = KS.paceTargets(plan);
     const mine = meta && meta.perPilot.find((pp) => pp.id === st.pilotId);
     $('lvMeta').textContent = mine ? `Alvo ${fmtLap(mine.lapSec)} s · máximo p/ chegar na frente ${fmtLap(mine.maxLapSec)} s` : '';
+    const stintPlan = plan.stints[st.stintIndex];
+    $('lvNote').textContent = stintPlan && stintPlan.note ? stintPlan.note : '';
+    $('lvNote').hidden = !(stintPlan && stintPlan.note);
     $('lvStintTime').textContent = fmtClock(st.stintElapsed);
     $('lvStintLaps').textContent = String(race.laps.filter((l) => l.stint === st.stintIndex).length);
     const last = race.laps[race.laps.length - 1];
@@ -3348,6 +3424,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       for (const s of mine) {
         const li = mk('li');
         li.append(mk('b', null, `Stint ${s.index + 1} · ${fmtClock(s.startSec)} → ${fmtClock(s.endSec)}`));
+        if (s.note) li.append(mk('span', 'pcard-note', s.note));
         li.append(mk('span', null, `Cerca de ${Math.round(s.laps)} voltas no stint.`));
         const stop = plan.stops[s.index];
         if (stop) {

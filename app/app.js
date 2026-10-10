@@ -57,13 +57,25 @@
 
   // v2: tempos medidos (Kaka 48,05 / Guilherme 48,40) e stints 30/22 min.
   // v3: folga de saída do box de 2 para 3 s (libera em 5:03).
-  const CFG_VERSION = 3;
+  // v4: plano padrão de 4 turnos de 26:15 (A, B, A, B) com a ação de cada turno.
+  const CFG_VERSION = 4;
   const OLD_STINTS_V2 = [30, 22.1625, 30];
+  const OLD_STINTS_V3 = [30, 22.1375, 30];
   const saved = load() || {};
   const fromVersion = saved.cfg ? (saved.cfgVersion || 1) : CFG_VERSION;
   let cfg = KS.normalizeConfig(saved.cfg || KS.DEFAULT_CONFIG);
   if (fromVersion < 2) cfg = migrateCfg(cfg);
   if (fromVersion < 3) cfg = migrateMargin(cfg);
+  if (fromVersion < 4) cfg = migrateStints(cfg);
+
+  /** Quem estava com o plano padrão 30/22 passa para os 4 turnos de 26:15. */
+  function isOldDefaultStints(c) {
+    return c && c.stintMode === 'custom' && (sameStints(c.customStintMin, OLD_STINTS_V2) || sameStints(c.customStintMin, OLD_STINTS_V3));
+  }
+  function migrateStints(c) {
+    if (!isOldDefaultStints(c)) return c;
+    return KS.normalizeConfig({ ...c, customStintMin: KS.DEFAULT_CONFIG.customStintMin.slice() });
+  }
 
   function sameStints(a, b) {
     return Array.isArray(a) && a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) < 1e-6);
@@ -96,8 +108,8 @@
 
   // Equipes cadastradas. A primeira vem da configuração atual.
   let teams = Array.isArray(saved.teams) && saved.teams.length ? saved.teams : [KS.teamFromConfig(cfg, 't1')];
-  if (fromVersion < 3) {
-    teams = teams.map((t) => (t.plan && sameStints(t.plan.customStintMin, OLD_STINTS_V2)
+  if (fromVersion < 4) {
+    teams = teams.map((t) => (isOldDefaultStints(t.plan)
       ? { ...t, plan: { ...t.plan, customStintMin: KS.DEFAULT_CONFIG.customStintMin.slice() } }
       : t));
   }
@@ -568,6 +580,7 @@
             { color: pilotVar(s.pilotId), rect: true, value: s.pilotName },
             { value: `${fmtClock(s.startSec)} → ${fmtClock(s.endSec)}`, label: 'de prova' },
             { value: fmtClock(s.durSec), label: `· ${fmtNum(s.laps, 1)} voltas` },
+            ...(s.note ? [{ value: s.note }] : []),
           ]);
         } else {
           const p = seg.p;
@@ -597,7 +610,7 @@
     const tbl = $('stintTable');
     tbl.replaceChildren();
     const head = tbl.createTHead().insertRow();
-    for (const [t, num, wide] of [['Stint'], ['Piloto'], ['Min', 1], ['Início', 1, 1], ['Fim', 1, 1], ['Voltas', 1, 1], ['Box', 1]]) {
+    for (const [t, num, wide] of [['Turno'], ['Piloto'], ['Duração', 1], ['Início', 1, 1], ['Fim', 1, 1], ['Voltas', 1, 1], ['Box', 1]]) {
       const th = document.createElement('th');
       th.textContent = t;
       if (num) th.className = 'num';
@@ -637,26 +650,25 @@
       cd.className = 'num';
       if (i < n - 1) {
         const inp = document.createElement('input');
-        inp.type = 'number';
-        inp.step = 'any';
-        inp.min = '0';
-        inp.inputMode = 'decimal';
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
+        inp.autocomplete = 'off';
         inp.id = `st-dur-${i}`;
-        inp.setAttribute('aria-label', `Duração do stint ${i + 1} em minutos`);
-        inp.value = String(Math.round((s.durSec / 60) * 100) / 100);
+        inp.setAttribute('aria-label', `Duração do turno ${i + 1} (minutos:segundos)`);
+        inp.value = fmtClock(s.durSec);
         inp.addEventListener('change', () => {
-          const v = parseFloat(String(inp.value).replace(',', '.'));
-          if (!Number.isFinite(v) || v < 0) { inp.value = String(Math.round((s.durSec / 60) * 100) / 100); return; }
-          cfg.customStintMin = plan.stints.slice(0, n - 1).map((st) => Math.round((st.durSec / 60) * 100) / 100);
-          cfg.customStintMin[i] = v;
+          const sec = KS.parseDuration(inp.value);
+          if (!Number.isFinite(sec) || sec <= 0) { inp.value = fmtClock(s.durSec); return; }
+          cfg.customStintMin = plan.stints.slice(0, n - 1).map((st) => st.durSec / 60);
+          cfg.customStintMin[i] = sec / 60;
           cfg.stintMode = 'custom';
           planNotes = [];
           updatePlan();
         });
         cd.appendChild(inp);
       } else {
-        cd.textContent = fmtNum(s.durSec / 60, 2);
-        cd.title = 'O último stint fecha a conta com o tempo que sobra';
+        cd.textContent = fmtClock(s.durSec);
+        cd.title = 'O último turno fecha a conta com o tempo que sobra até a bandeira';
       }
       const c3 = tr.insertCell(); c3.className = 'num wide-only'; c3.textContent = fmtClock(s.startSec);
       const c4 = tr.insertCell(); c4.className = 'num wide-only'; c4.textContent = fmtClock(s.endSec);
@@ -664,12 +676,30 @@
       const c6 = tr.insertCell(); c6.className = 'num';
       c6.textContent = i < plan.stops.length ? `V${plan.stops[i].lap}` : 'Bandeira';
       if (i >= plan.stops.length) c6.classList.add('muted');
+
+      // Ação do turno, editável, numa linha logo abaixo.
+      const nr = body.insertRow();
+      nr.className = 'note-row';
+      const nc = nr.insertCell();
+      nc.colSpan = 7;
+      const note = document.createElement('input');
+      note.type = 'text';
+      note.maxLength = 140;
+      note.id = `st-note-${i}`;
+      note.placeholder = 'O que o piloto faz neste turno';
+      note.setAttribute('aria-label', `Ação do turno ${i + 1}`);
+      note.value = s.note || '';
+      note.addEventListener('change', () => {
+        cfg.stintNotes[i] = note.value.trim();
+        updatePlan();
+      });
+      nc.appendChild(note);
     });
 
     const notes = [];
     notes.push(cfg.stintMode === 'equal'
-      ? `Stints iguais de ${fmtClock(plan.driveSec / n)}. Edite uma duração para personalizar; o último stint fecha a conta.`
-      : 'Stints personalizados. O último stint fecha a conta com o tempo que sobra.');
+      ? `Turnos iguais de ${fmtClock(plan.driveSec / n)}. Digite uma duração (ex.: 26:15) para mudar; o último turno fecha a conta até a bandeira.`
+      : 'Digite a duração como minutos:segundos (ex.: 26:15). O último turno fecha a conta até a bandeira, descontando as paradas.');
     $('stintHint').textContent = notes.concat(planNotes).join(' ');
   }
 
@@ -981,6 +1011,9 @@
     const meta = KS.paceTargets(plan);
     const mine = meta && meta.perPilot.find((pp) => pp.id === st.pilotId);
     $('lvMeta').textContent = mine ? `Alvo ${fmtLap(mine.lapSec)} s · máximo p/ chegar na frente ${fmtLap(mine.maxLapSec)} s` : '';
+    const stintPlan = plan.stints[st.stintIndex];
+    $('lvNote').textContent = stintPlan && stintPlan.note ? stintPlan.note : '';
+    $('lvNote').hidden = !(stintPlan && stintPlan.note);
     $('lvStintTime').textContent = fmtClock(st.stintElapsed);
     $('lvStintLaps').textContent = String(race.laps.filter((l) => l.stint === st.stintIndex).length);
     const last = race.laps[race.laps.length - 1];
@@ -1567,6 +1600,7 @@
       for (const s of mine) {
         const li = mk('li');
         li.append(mk('b', null, `Stint ${s.index + 1} · ${fmtClock(s.startSec)} → ${fmtClock(s.endSec)}`));
+        if (s.note) li.append(mk('span', 'pcard-note', s.note));
         li.append(mk('span', null, `Cerca de ${Math.round(s.laps)} voltas no stint.`));
         const stop = plan.stops[s.index];
         if (stop) {

@@ -62,25 +62,24 @@ Os dados ficam salvos no próprio aparelho (localStorage). No dia da prova, use 
 | Perda real por parada | 5:00 + 3 s de folga + ~10 s de pit lane + ~1,5 s de pneu frio ≈ **5:14,5** |
 | Tempo de pista | ≈ **1:44:17** |
 | Voltas estimadas | ≈ **130** (129,9) |
-| Stints | Kaka 2 × **30:00** (≈ 37 voltas cada) · Guilherme 2 × **22:10** (≈ 27 voltas cada) |
+| Turnos | 4 de **26:15** (o último fecha a conta), cerca de **32 voltas** cada |
 
 As perdas de pit lane e volta de saída são estimativas. Meça no treino e ajuste no Plano.
 
-### Plano base
+### Plano base: 4 turnos de 26:15
 
-Kaka é 0,35 s por volta mais rápido, então faz stints de 30 min e o Guilherme de cerca de 22 min.
+Turnos de 26:15 revezando **Piloto A (Kaka)**, que larga, e **Piloto B (Guilherme)**, que fecha a prova. Cada turno tem uma ação editável na aba Plano.
 
-| Stint | Piloto | De → até | Voltas | Entra no box |
-|---|---|---|---|---|
-| 1 | Kaka | 0:00 → 30:00 | 37,5 | volta 37 (janela V34–V40, prazo 35:00) |
-| 2 | Guilherme Coutinho | 35:15 → 57:23 | 27,4 | volta 65 (janela V62–V68, prazo 1:10:15) |
-| 3 | Kaka | 1:02:37 → 1:32:37 | 37,5 | volta 102 (janela V99–V105, prazo 1:37:37) |
-| 4 | Guilherme Coutinho | 1:37:52 → 2:00:00 | 27,4 | bandeira |
+| Turno | Piloto | De → até | Voltas | Entra no box | Ação |
+|---|---|---|---|---|---|
+| 1 | Kaka | 0:00 → 26:15 | 32,8 | volta 33 (janela V30–V36, prazo 35:00) | Largada: escapar do tráfego inicial, sem riscos. |
+| 2 | Guilherme Coutinho | 31:30 → 57:45 | 32,5 | volta 65 (janela V62–V68, prazo 1:06:30) | Pista mais limpa: ritmo constante. |
+| 3 | Kaka | 1:02:59 → 1:29:14 | 32,8 | volta 98 (janela V95–V101, prazo 1:37:59) | Segundo turno: foco em consistência. |
+| 4 | Guilherme Coutinho | 1:34:29 → 2:00:00 | 31,6 | bandeira | Sprint final até a bandeira. |
 
-- **Tempo de pista:** Kaka 1:00:00 (≈ 75 voltas), Guilherme 44:17 (≈ 55 voltas).
-- **Ganho:** cerca de 3,4 s na prova em relação a dividir igual.
-- **Folga:** cada parada do Kaka fica 5 min antes do prazo. Assim sobra janela para aproveitar uma amarela ou atrasar se o piloto estiver bem.
-- **Botão Otimizar pelo ritmo:** leva o Kaka até cerca de 32,5 min por stint (≈ 5,7 s de ganho). Sempre sobram 3 voltas de janela antes do prazo, mas os stints longos cansam mais.
+- **Por que não bate exatamente com 26:15 / 31:15 / 57:30:** cada parada custa cerca de 5:14,5 (5:03 no box + entrada/saída do pit + pneu frio), não 5:00. Por isso os horários depois da 1ª parada andam alguns segundos e o último turno fecha a conta com 25:32. Se os 5:00 do regulamento contarem de linha a linha do pit, zere "Pit lane" na aba Plano e o último turno volta para perto de 26:15.
+- **Para mudar:** na aba Plano, digite a duração de cada turno como minutos:segundos (ex.: 26:15), troque o piloto do turno e escreva a ação. O último turno sempre fecha a conta até a bandeira.
+- **Alternativa por ritmo:** o Kaka é 0,35 s por volta mais rápido. Com turnos de 30 min para ele e ~22 min para o Guilherme, a equipe ganha cerca de 3,4 s. O botão **Otimizar pelo ritmo** leva o Kaka até ~32,5 min por turno (≈ 5,7 s).
 
 ### Meta para chegar na frente
 
@@ -89,13 +88,13 @@ Na aba Plano, informe o **menor tempo da pista**, que pode ser o recorde ou a me
 Com isso o app mostra:
 
 - **O ritmo estimado das equipes da frente:** 47,60 + 0,80 = 48,40 s por volta, cerca de 129,3 voltas.
-- **Onde vocês terminam com os tempos atuais:** cerca de 0,5 volta (26 s) à frente.
+- **Onde vocês terminam com os tempos atuais:** cerca de 0,5 volta (23 s) à frente.
 - **O tempo máximo de cada piloto para ainda chegar na frente:**
 
 | Piloto | Ritmo | vs menor tempo | Máximo p/ chegar na frente | vs menor tempo |
 |---|---|---|---|---|
-| Kaka | 48,05 s | +0,45 s | **48,25 s** | +0,65 s |
-| Guilherme | 48,40 s | +0,80 s | **48,60 s** | +1,00 s |
+| Kaka | 48,05 s | +0,45 s | **48,23 s** | +0,63 s |
+| Guilherme | 48,40 s | +0,80 s | **48,58 s** | +0,98 s |
 
 A mesma meta aparece na ficha de cada piloto (aba Manual) e embaixo do nome do piloto na aba Ao vivo.
 
@@ -103,12 +102,12 @@ A mesma meta aparece na ficha de cada piloto (aba Manual) e embaixo do nome do p
 
 | | Estratégia A: Kaka abre | Estratégia B: Guilherme abre |
 |---|---|---|
-| Stints | Kaka 0:00–30:00 · Guilherme 35:15–57:23 · Kaka 1:02:37–1:32:37 · Guilherme 1:37:52–2:00 | Guilherme 0:00–22:08 · Kaka 27:23–57:23 · Guilherme 1:02:37–1:24:46 · Kaka 1:30:00–2:00 |
-| Box nas voltas | 37, 65, 102 | 27, 65, 92 |
+| Turnos | Kaka 0:00–26:15 · Guilherme 31:30–57:45 · Kaka 1:02:59–1:29:14 · Guilherme 1:34:29–2:00 | Guilherme 0:00–26:15 · Kaka 31:30–57:45 · Guilherme 1:02:59–1:29:14 · Kaka 1:34:29–2:00 |
+| Box nas voltas | 33, 65, 98 | 33, 65, 98 |
 | Quem fecha | Guilherme | Kaka (o mais rápido defende ou ganha posição no fim) |
-| Voltas | 129,9 | 129,9 |
+| Voltas | 129,7 | 129,7 |
 
-As duas dão o mesmo total de voltas, porque cada piloto pilota o mesmo tempo. O que muda é quem enfrenta a largada, quem fecha a prova e em que voltas são as paradas. Escolha com o botão **Usar esta estratégia** na aba Plano.
+As duas dão praticamente o mesmo total de voltas, porque cada piloto pilota quase o mesmo tempo. O que muda é quem enfrenta a largada e quem fecha a prova. Escolha com o botão **Usar esta estratégia** na aba Plano.
 
 ### Estratégia só com os dois pilotos
 

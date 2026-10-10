@@ -204,22 +204,35 @@ test('placa de box: OK, contagem de voltas, BOX e RITMO', () => {
   assert.equal(KS.liveStatus(cfg, plan, { ...race, laps: slow }, 10 * 60).sign.text, 'RITMO');
 });
 
-test('plano da equipe: Kaka 48,05 s com stints de 30 min, Guilherme 48,40 s', () => {
+test('plano da equipe: 4 turnos de 26:15 revezando Kaka (A) e Guilherme (B)', () => {
   const plan = KS.buildPlan(KS.DEFAULT_CONFIG);
   assert.deepEqual(plan.stints.map((s) => s.pilotName), ['Kaka', 'Guilherme Coutinho', 'Kaka', 'Guilherme Coutinho']);
-  near(plan.stints[0].durSec, 30 * 60);
-  near(plan.stints[2].durSec, 30 * 60);
-  near(plan.stints[1].durSec, plan.stints[3].durSec, 1e-6);
-  near(plan.perPilot.p1.driveSec, 60 * 60);
+  for (const i of [0, 1, 2]) near(plan.stints[i].durSec, 26 * 60 + 15);
+  near(plan.stints[0].endSec, 26 * 60 + 15); // 1ª parada aos 26:15
+  near(plan.stints[3].endSec, 7200); // último turno fecha a conta até a bandeira
+  assert.ok(plan.stints[3].durSec < 26 * 60 + 15); // as paradas custam mais que 5:00
   assert.equal(plan.warnings.length, 0);
-  // Mais voltas que dividir igual.
-  const equal = KS.buildPlan({ ...KS.DEFAULT_CONFIG, stintMode: 'equal' });
-  assert.ok(plan.totalLaps > equal.totalLaps);
-  // Toda parada tem folga até o prazo e a janela ideal passa da volta-alvo.
-  for (const s of plan.stops) {
-    assert.ok(s.window.latestSec - s.inSec >= 3 * 60, `parada ${s.index + 1} sem folga`);
-    assert.ok(s.idealLaps[1] > s.lap);
-  }
+  assert.deepEqual(plan.stints.map((s) => s.note.length > 0), [true, true, true, true]);
+  for (const s of plan.stops) assert.ok(s.window.latestSec - s.inSec >= 3 * 60, `parada ${s.index + 1} sem folga`);
+});
+
+test('duração digitada: min:s, h:min:s ou minutos', () => {
+  assert.equal(KS.parseDuration('26:15'), 1575);
+  assert.equal(KS.parseDuration('1:02:30'), 3750);
+  assert.equal(KS.parseDuration('26,25'), 1575);
+  assert.ok(Number.isNaN(KS.parseDuration('26:75')));
+  assert.ok(Number.isNaN(KS.parseDuration('abc')));
+});
+
+test('ação de cada turno acompanha a quantidade de turnos', () => {
+  // Sem anotações informadas e com outra quantidade de turnos: ficam em branco.
+  const { stintNotes, ...noNotes } = KS.DEFAULT_CONFIG;
+  assert.equal(stintNotes.length, 4);
+  assert.deepEqual(KS.normalizeConfig({ ...noNotes, stops: 1 }).stintNotes, ['', '']);
+  // Com anotações informadas, mantém as primeiras.
+  assert.deepEqual(KS.normalizeConfig({ ...KS.DEFAULT_CONFIG, stops: 1 }).stintNotes, stintNotes.slice(0, 2));
+  const kept = KS.normalizeConfig({ ...KS.DEFAULT_CONFIG, stintNotes: ['a', 'b', 'c', 'd', 'e'] });
+  assert.deepEqual(kept.stintNotes, ['a', 'b', 'c', 'd']);
 });
 
 test('otimizar nunca marca a parada em cima do prazo', () => {
@@ -251,7 +264,7 @@ test('meta: líderes mais rápidos pedem ganho por volta; sem menor tempo não h
   assert.equal(KS.paceTargets(KS.buildPlan({ ...KS.DEFAULT_CONFIG, trackBestSec: 0 })), null);
 });
 
-test('estratégias A e B: cada piloto abre, mesmo total de voltas e mesmo tempo por piloto', () => {
+test('estratégias A e B: cada piloto abre e cada um mantém seu tempo de turno', () => {
   const [a, b] = KS.starterScenarios(KS.DEFAULT_CONFIG);
   assert.equal(a.starterName, 'Kaka');
   assert.equal(a.finisherName, 'Guilherme Coutinho');
@@ -260,12 +273,14 @@ test('estratégias A e B: cada piloto abre, mesmo total de voltas e mesmo tempo 
   assert.equal(b.finisherName, 'Kaka');
   assert.ok(!b.inUse);
   assert.ok(b.fastestFinishes);
-  near(a.plan.totalLaps, b.plan.totalLaps, 1e-9);
-  near(a.plan.perPilot.p1.driveSec, b.plan.perPilot.p1.driveSec, 1e-6);
+  // O último turno fecha a conta: quem fecha pilota um pouco menos. Com o mais
+  // rápido abrindo (A), sai um pouquinho mais de voltas.
+  near(a.plan.totalLaps, b.plan.totalLaps, 0.05);
+  assert.ok(a.plan.totalLaps >= b.plan.totalLaps);
   assert.equal(a.plan.warnings.length, 0);
   assert.equal(b.plan.warnings.length, 0);
   near(b.plan.stints[0].durSec, a.plan.stints[1].durSec, 1e-6);
-  near(b.plan.stints[1].durSec, 30 * 60, 1e-6);
+  near(b.plan.stints[1].durSec, 26 * 60 + 15, 1e-6);
 });
 
 test('equipes: 3 pilotos se revezam e cada um pode abrir a prova', () => {
@@ -340,11 +355,10 @@ test('equipes: cada equipe guarda a própria escala', () => {
   assert.equal(g.stintMode, 'equal');
 });
 
-test('box libera em 5:03 (3 s de folga) e o plano 30/22 fecha a conta', () => {
+test('box libera em 5:03 (3 s de folga)', () => {
   const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
   assert.equal(cfg.minPitSec + cfg.exitMarginSec, 303);
   const plan = KS.buildPlan(cfg);
   near(plan.perStopLoss, 314.5);
-  near(plan.stints[1].durSec, plan.stints[3].durSec, 1e-6);
   near(plan.stints[3].endSec, 7200, 1e-6);
 });

@@ -508,3 +508,10 @@ table.signs td:first-child { white-space: nowrap; font-family: var(--f-display);
   * { transition: none !important; animation: none !important; }
 }
 table.meta-table th { white-space: normal; vertical-align: bottom; }
+
+/* Ação de cada turno */
+table.data tr.note-row td { padding-top: 0; }
+table.data tr.note-row input { width: 100%; text-align: left; font-size: var(--step--1); min-height: 34px; }
+table.data tr:has(+ tr.note-row) td { border-bottom: 0; }
+.pcard-note { font-style: italic; color: var(--ink-2); }
+.driver-note { display: block; margin-top: 4px; font-size: var(--step--1); color: var(--ink); background: var(--accent-wash); border-radius: 4px; padding: 2px 8px; }
