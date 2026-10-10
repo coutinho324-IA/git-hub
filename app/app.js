@@ -1633,6 +1633,34 @@
     if (ui.tab === 'plano' && now - lastPlanTick > 5000) { lastPlanTick = now; renderTimeline(); }
   }, 250);
 
+  // ======================= TEMA =======================
+  // Automático segue o celular; Claro e Escuro fixam a cor da tela.
+  const THEMES = ['auto', 'light', 'dark'];
+  const THEME_NAMES = { auto: 'automático', light: 'claro', dark: 'escuro' };
+  const THEME_SHORT = { auto: 'Auto', light: 'Claro', dark: 'Escuro' };
+  const hostTheme = document.documentElement.getAttribute('data-theme');
+
+  function applyTheme() {
+    const t = THEMES.includes(ui.theme) ? ui.theme : 'auto';
+    const root = document.documentElement;
+    if (t !== 'auto') root.setAttribute('data-theme', t);
+    else if (hostTheme) root.setAttribute('data-theme', hostTheme);
+    else root.removeAttribute('data-theme');
+    const btn = $('btnTheme');
+    btn.dataset.theme = t;
+    btn.setAttribute('aria-label', `Tema: ${THEME_NAMES[t]}. Toque para trocar.`);
+    btn.title = `Tema: ${THEME_NAMES[t]}`;
+    $('themeLabel').textContent = THEME_SHORT[t];
+  }
+
+  $('btnTheme').addEventListener('click', () => {
+    const cur = THEMES.includes(ui.theme) ? ui.theme : 'auto';
+    ui.theme = THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length];
+    applyTheme();
+    save();
+  });
+  applyTheme();
+
   // ======================= SEM INTERNET =======================
   function storageWorks() {
     try {

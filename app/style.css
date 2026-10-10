@@ -626,3 +626,15 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
   .topbar-inner { padding-block: 8px; }
   .card { padding: 16px; }
 }
+
+/* Botão de tema (automático / claro / escuro) */
+.theme-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; cursor: pointer;
+  border: 1px solid var(--board-2); border-radius: 999px; background: transparent; color: var(--board-fg);
+  font-family: var(--f-display); font-weight: 700; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.theme-btn:hover { border-color: var(--board-muted); }
+.theme-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: none; }
+.theme-btn svg .fill { fill: currentColor; stroke: none; }
+.theme-btn[data-theme="auto"] .ico-auto, .theme-btn[data-theme="light"] .ico-light, .theme-btn[data-theme="dark"] .ico-dark { display: block; }
+@media (max-width: 420px) { .theme-label { display: none; } .theme-btn { width: 34px; padding: 0; justify-content: center; } }

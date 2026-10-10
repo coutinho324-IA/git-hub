@@ -7,7 +7,7 @@ App de estratégia para endurance de kart da equipe **Aristeu Just Motors**.
 - **Volta média (treino):** Kaka 48,05 s · Guilherme Coutinho 48,40 s
 - **Regra:** 3 paradas obrigatórias, com 5 minutos de permanência no box em cada uma
 
-O app roda no navegador do celular, sem instalação e sem internet depois de aberto. Ele tem cinco abas:
+O app roda no navegador do celular, sem instalação e sem internet depois de aberto. O botão no topo troca a cor da tela: **Automático** (segue o celular), **Claro** ou **Escuro**. Ele tem cinco abas:
 
 | Aba | Para que serve |
 |---|---|
