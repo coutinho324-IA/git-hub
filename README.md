@@ -124,6 +124,15 @@ A aba **Comparar** divide a tela e mostra várias coisas ao mesmo tempo. Escolha
 | 6 partes | 3 × 2 |
 | Livre | você escolhe de 1 a 4 colunas e de 1 a 3 linhas (até 12 partes) |
 
+Em **Equipes na tela**, marque quais equipes quer ver juntas. O contador mostra quantas estão na tela (por exemplo, "3 de 5"):
+
+- Marcar uma equipe acrescenta uma parte.
+- Desmarcar tira a parte dessa equipe.
+- **Todas** mostra todas as equipes cadastradas.
+- **+ Cadastrar equipe** abre o cadastro.
+
+A cada mudança, a tela se divide sozinha em partes do mesmo tamanho, até 12. Quando a última linha tem menos partes, elas ficam mais largas para ocupar a linha toda.
+
 No primeiro seletor de cada parte você escolhe **o que ela mostra**:
 
 - **Um menu do app:** Plano, Ao vivo, Análise, Equipes ou Manual. Funciona igual à aba: dá para editar o Plano, rodar o cronômetro e registrar voltas. Exemplos: Plano de um lado e Ao vivo do outro, ou Ao vivo grande com duas estratégias ao lado (modelo 1 grande + 2).

@@ -738,8 +738,9 @@
   const SPLIT_MAX_COLS = 4;
   const SPLIT_MAX_ROWS = 3;
 
-  /** Partes da tela de um modelo, ou da divisão livre (colunas × linhas). */
-  function splitCells(layoutId, cols, rows) {
+  /** Partes da tela de um modelo, da divisão livre (colunas × linhas) ou automática (n partes). */
+  function splitCells(layoutId, cols, rows, count) {
+    if (layoutId === 'auto') return fitSplit(count);
     const preset = SPLIT_LAYOUTS.find((l) => l.id === layoutId);
     const c = preset ? preset.cols : clamp(Math.round(num(cols, 2)), 1, SPLIT_MAX_COLS);
     const r = preset ? preset.rows : clamp(Math.round(num(rows, 1)), 1, SPLIT_MAX_ROWS);
@@ -747,6 +748,32 @@
       ? preset.cells.map(([col, row, colSpan, rowSpan]) => ({ col, row, colSpan, rowSpan }))
       : Array.from({ length: c * r }, (_, i) => ({ col: (i % c) + 1, row: Math.floor(i / c) + 1, colSpan: 1, rowSpan: 1 }));
     return { id: preset ? preset.id : 'free', cols: c, rows: r, cells };
+  }
+
+  /**
+   * Divisão para n partes usando a tela toda: a grade mais equilibrada
+   * (até 4 colunas × 3 linhas). Se a última linha tiver menos partes, elas
+   * ficam mais largas para fechar a linha.
+   */
+  function fitSplit(n) {
+    const count = clamp(Math.round(num(n, 1)), 1, SPLIT_MAX_COLS * SPLIT_MAX_ROWS);
+    const [c, r] = count <= 3 ? [count, 1] : count === 4 ? [2, 2] : count <= 6 ? [3, 2] : count <= 8 ? [4, 2] : count === 9 ? [3, 3] : [4, 3];
+    if (c * r === count) {
+      const preset = SPLIT_LAYOUTS.find((l) => !l.cells && l.cols === c && l.rows === r);
+      return preset ? splitCells(preset.id) : splitCells('free', c, r);
+    }
+    const last = count - c * (r - 1);
+    const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+    const cols = (c * last) / gcd(c, last);
+    const cells = [];
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(i / c) + 1;
+      const inRow = row < r ? c : last;
+      const pos = row < r ? i % c : i - c * (r - 1);
+      const span = cols / inRow;
+      cells.push({ col: pos * span + 1, row, colSpan: span, rowSpan: 1 });
+    }
+    return { id: 'auto', cols, rows: r, cells };
   }
 
   /**
@@ -833,6 +860,7 @@
     SPLIT_MAX_COLS,
     SPLIT_MAX_ROWS,
     splitCells,
+    fitSplit,
     variantConfig,
     rankByLaps,
     driveTimes,

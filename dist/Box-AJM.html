@@ -884,6 +884,32 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   .meta-ref, .facts { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* Equipes na tela: liga e desliga cada equipe; a tela se divide sozinha. */
+.cmp-bar-teams { flex: 1 1 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.cmp-bar-teams .eyebrow b { color: var(--ink); margin-left: 4px; }
+.cmp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.cmp-chip {
+  position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 6px 14px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink-2);
+  font-family: var(--f-display); font-weight: 700; font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.cmp-chip::before {
+  content: ""; flex: none; width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--muted); box-sizing: border-box;
+}
+.cmp-chip:hover:not(:disabled) { border-color: var(--muted); color: var(--ink); }
+.cmp-chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-wash); color: var(--ink); }
+.cmp-chip[aria-pressed="true"]::before { border-color: var(--accent); background: var(--accent); }
+.cmp-chip[aria-pressed="true"]::after {
+  content: ""; position: absolute; left: 20px; top: 50%; width: 4px; height: 8px;
+  border: solid var(--accent-ink); border-width: 0 2px 2px 0; transform: translateY(-62%) rotate(45deg);
+}
+.cmp-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.cmp-chip-action { color: var(--accent); border-style: dashed; }
+.cmp-chip-action::before { display: none; }
+.compare:fullscreen .cmp-bar-teams { flex-direction: row; align-items: center; padding-top: 6px; }
+.compare:fullscreen .cmp-chip { min-height: 30px; padding: 3px 10px; }
+.compare:fullscreen .cmp-chip[aria-pressed="true"]::after { left: 16px; }
+
 </style>
 </head>
 <body>
@@ -1086,6 +1112,10 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
           <label class="field"><span>Linhas</span><select id="cmpRows"></select></label>
         </div>
         <button type="button" class="btn btn-ghost" id="btnCmpFull">Tela cheia</button>
+      </div>
+      <div class="cmp-bar-teams">
+        <span class="eyebrow" id="cmpTeamsLabel">Equipes na tela <b id="cmpTeamCount"></b></span>
+        <div class="cmp-chips" id="cmpTeamChips" role="group" aria-labelledby="cmpTeamsLabel"></div>
       </div>
     </div>
     <p class="hint cmp-phone-hint">No celular as partes ficam uma embaixo da outra. Para ver lado a lado, use o notebook ou o celular deitado.</p>
@@ -2135,8 +2165,9 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   const SPLIT_MAX_COLS = 4;
   const SPLIT_MAX_ROWS = 3;
 
-  /** Partes da tela de um modelo, ou da divisão livre (colunas × linhas). */
-  function splitCells(layoutId, cols, rows) {
+  /** Partes da tela de um modelo, da divisão livre (colunas × linhas) ou automática (n partes). */
+  function splitCells(layoutId, cols, rows, count) {
+    if (layoutId === 'auto') return fitSplit(count);
     const preset = SPLIT_LAYOUTS.find((l) => l.id === layoutId);
     const c = preset ? preset.cols : clamp(Math.round(num(cols, 2)), 1, SPLIT_MAX_COLS);
     const r = preset ? preset.rows : clamp(Math.round(num(rows, 1)), 1, SPLIT_MAX_ROWS);
@@ -2144,6 +2175,32 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
       ? preset.cells.map(([col, row, colSpan, rowSpan]) => ({ col, row, colSpan, rowSpan }))
       : Array.from({ length: c * r }, (_, i) => ({ col: (i % c) + 1, row: Math.floor(i / c) + 1, colSpan: 1, rowSpan: 1 }));
     return { id: preset ? preset.id : 'free', cols: c, rows: r, cells };
+  }
+
+  /**
+   * Divisão para n partes usando a tela toda: a grade mais equilibrada
+   * (até 4 colunas × 3 linhas). Se a última linha tiver menos partes, elas
+   * ficam mais largas para fechar a linha.
+   */
+  function fitSplit(n) {
+    const count = clamp(Math.round(num(n, 1)), 1, SPLIT_MAX_COLS * SPLIT_MAX_ROWS);
+    const [c, r] = count <= 3 ? [count, 1] : count === 4 ? [2, 2] : count <= 6 ? [3, 2] : count <= 8 ? [4, 2] : count === 9 ? [3, 3] : [4, 3];
+    if (c * r === count) {
+      const preset = SPLIT_LAYOUTS.find((l) => !l.cells && l.cols === c && l.rows === r);
+      return preset ? splitCells(preset.id) : splitCells('free', c, r);
+    }
+    const last = count - c * (r - 1);
+    const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+    const cols = (c * last) / gcd(c, last);
+    const cells = [];
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(i / c) + 1;
+      const inRow = row < r ? c : last;
+      const pos = row < r ? i % c : i - c * (r - 1);
+      const span = cols / inRow;
+      cells.push({ col: pos * span + 1, row, colSpan: span, rowSpan: 1 });
+    }
+    return { id: 'auto', cols, rows: r, cells };
   }
 
   /**
@@ -2230,6 +2287,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     SPLIT_MAX_COLS,
     SPLIT_MAX_ROWS,
     splitCells,
+    fitSplit,
     variantConfig,
     rankByLaps,
     driveTimes,
@@ -4258,7 +4316,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   // A tela dividida em partes. Cada parte mostra um menu do app (Plano, Ao
   // vivo, Análise, Equipes, Manual) ou a estratégia de uma equipe. As
   // estratégias usam as regras da prova do Plano (duração, paradas, box).
-  ui.cmp = Object.assign({ layout: 'c2', cols: 2, rows: 2, panes: [] }, ui.cmp || {});
+  ui.cmp = Object.assign({ layout: 'c2', cols: 2, rows: 2, count: 2, panes: [] }, ui.cmp || {});
   if (!Array.isArray(ui.cmp.panes)) ui.cmp.panes = [];
 
   const CMP_MENUS = [
@@ -4395,6 +4453,72 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     return sel;
   }
 
+  // Quais e quantas equipes aparecem juntas. Ligar uma equipe acrescenta
+  // uma parte; desligar tira as partes dela. A tela se redivide sozinha.
+  const MAX_PARTS = KS.SPLIT_MAX_COLS * KS.SPLIT_MAX_ROWS;
+  const paneValue = (q) => (q.menu === 'team' ? { menu: 'team', teamId: q.team.id, view: q.view } : { menu: q.menu });
+
+  function setPanes(list) {
+    const fit = KS.fitSplit(list.length);
+    ui.cmp.layout = fit.id;
+    if (fit.id === 'free') { ui.cmp.cols = fit.cols; ui.cmp.rows = fit.rows; }
+    ui.cmp.count = list.length;
+    ui.cmp.panes = list;
+    save();
+    renderCompare();
+  }
+
+  function toggleTeam(id) {
+    const cur = cmpLast.map(paneValue);
+    const isShown = (v) => v.menu === 'team' && v.teamId === id;
+    if (cur.some(isShown)) {
+      const next = cur.filter((v) => !isShown(v));
+      if (next.length) setPanes(next);
+    } else if (cur.length < MAX_PARTS) {
+      setPanes([...cur, { menu: 'team', teamId: id, view: 'plan' }]);
+    }
+  }
+
+  function showAllTeams() {
+    const cur = cmpLast.map(paneValue);
+    const missing = teams.filter((t) => !cur.some((v) => v.menu === 'team' && v.teamId === t.id));
+    setPanes([...cur, ...missing.map((t) => ({ menu: 'team', teamId: t.id, view: 'plan' }))].slice(0, MAX_PARTS));
+  }
+
+  function renderTeamChips(panes) {
+    const shown = new Set(panes.filter((p) => p.menu === 'team').map((p) => p.team.id));
+    const full = panes.length >= MAX_PARTS;
+    const wrap = $('cmpTeamChips');
+    const chips = teams.map((t) => {
+      const on = shown.has(t.id);
+      const b = mkEl('button', 'cmp-chip', t.workshop ? `${t.name} (${t.workshop})` : t.name);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(on));
+      b.disabled = !on && full;
+      b.title = on ? 'Tirar da tela' : full ? 'A tela já tem 12 partes' : 'Mostrar na tela';
+      b.addEventListener('click', () => toggleTeam(t.id));
+      return b;
+    });
+    if (teams.length > 1 && teams.some((t) => !shown.has(t.id)) && !full) {
+      const all = mkEl('button', 'cmp-chip cmp-chip-action', 'Todas');
+      all.type = 'button';
+      all.title = 'Mostrar todas as equipes cadastradas';
+      all.addEventListener('click', showAllTeams);
+      chips.push(all);
+    }
+    const add = mkEl('button', 'cmp-chip cmp-chip-action', '+ Cadastrar equipe');
+    add.type = 'button';
+    add.addEventListener('click', () => {
+      editor.open('new');
+      if (cmpShows('equipes')) renderTeams();
+      else setTab('equipes');
+      $('te-name').focus();
+    });
+    chips.push(add);
+    wrap.replaceChildren(...chips);
+    $('cmpTeamCount').textContent = `${shown.size} de ${teams.length}`;
+  }
+
   function cmpArea(cell) { return `${cell.row} / ${cell.col} / span ${cell.rowSpan} / span ${cell.colSpan}`; }
 
   /** Parte que mostra um menu do app (a aba é colocada no corpo depois). */
@@ -4429,6 +4553,8 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   function renderCmpModels(split) {
     const wrap = $('cmpModels');
     const models = [...KS.SPLIT_LAYOUTS.map((l) => ({ id: l.id, name: l.name })), { id: 'free', name: FREE_NAME }];
+    // Divisão automática (escolhida pelas equipes na tela) aparece só quando está em uso.
+    if (split.id === 'auto') models.push({ id: 'auto', name: `${split.cells.length} partes` });
     wrap.replaceChildren(...models.map((m) => {
       const b = mkEl('button', 'cmp-model');
       b.type = 'button';
@@ -4437,10 +4563,11 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
       const on = split.id === m.id;
       b.setAttribute('aria-checked', String(on));
       b.tabIndex = on ? 0 : -1;
-      const s = m.id === 'free' ? KS.splitCells('free', ui.cmp.cols, ui.cmp.rows) : KS.splitCells(m.id);
+      const s = m.id === 'free' ? KS.splitCells('free', ui.cmp.cols, ui.cmp.rows) : m.id === 'auto' ? split : KS.splitCells(m.id);
       const name = m.id === 'free' ? `${FREE_NAME} ${s.cols}×${s.rows}` : m.name;
       b.append(cmpThumb(s), mkEl('span', 'cmp-model-name', name));
-      b.title = m.id === 'free' ? 'Você escolhe colunas e linhas' : `${m.name}: ${s.cells.length} partes`;
+      b.title = m.id === 'free' ? 'Você escolhe colunas e linhas'
+        : m.id === 'auto' ? 'Dividida sozinha para caber as equipes escolhidas' : `${m.name}: ${s.cells.length} partes`;
       return b;
     }));
     $('cmpFree').hidden = split.id !== 'free';
@@ -4464,7 +4591,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     if (!(e.key in keys)) return;
     e.preventDefault();
     const ids = [...$('cmpModels').querySelectorAll('[data-layout]')].map((b) => b.dataset.layout);
-    const i = ids.indexOf(KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows).id);
+    const i = ids.indexOf(KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows, ui.cmp.count).id);
     chooseLayout(ids[(i + keys[e.key] + ids.length) % ids.length]);
   });
 
@@ -4524,7 +4651,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   let cmpWidth = 0;
   function renderCompare() {
     cmpWidth = window.innerWidth;
-    const split = KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows);
+    const split = KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows, ui.cmp.count);
     renderCmpModels(split);
     const grid = $('cmpGrid');
     grid.dataset.layout = split.id;
@@ -4542,6 +4669,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
       return p;
     });
     cmpLast = panes;
+    renderTeamChips(panes);
     // Classificação só entre as partes que mostram estratégia de equipe.
     const teamPanes = panes.filter((p) => p.menu === 'team');
     const ranks = KS.rankByLaps(teamPanes.map((p) => p.plan));
