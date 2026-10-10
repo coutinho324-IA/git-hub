@@ -806,6 +806,9 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
 /* Equipes na tela: liga e desliga cada equipe; a tela se divide sozinha. */
 .cmp-bar-teams { flex: 1 1 100%; display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
 .cmp-bar-teams .eyebrow b { color: var(--ink); margin-left: 4px; }
+.cmp-bar-menus + .cmp-bar-teams { padding-top: 10px; }
+.cmp-bar-menus .hint { margin: 0; }
+.compare:fullscreen .cmp-bar-menus .hint { display: none; }
 .cmp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .cmp-chip {
   position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 6px 14px; cursor: pointer;

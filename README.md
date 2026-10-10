@@ -29,7 +29,7 @@ A engrenagem no topo abre as Configurações, com três submenus:
 - **Multi telas:** divide a tela e mostra tudo ao mesmo tempo. Cada parte pode ter um menu do app (Plano, Ao vivo, Análise, Equipes, Manual) ou a estratégia de uma equipe. Detalhes em [Multi telas](#multi-telas-a-tela-dividida).
 - **Aparência:** escolhe a cor da tela (Automático, Claro ou Escuro).
 
-Tocar na engrenagem de novo volta para a aba de antes. Tudo fica salvo no aparelho.
+Dentro de Configurações, tocar na engrenagem de novo volta para o menu de antes. No Multi telas, a engrenagem abre as Configurações. Tudo fica salvo no aparelho.
 
 ## Usar sem internet
 
@@ -136,6 +136,8 @@ O **Multi telas** fica em **Configurações** (engrenagem no topo). Ele divide a
 | 1 grande + 2 | uma parte grande à esquerda e duas à direita |
 | 6 partes | 3 × 2 |
 | Livre | você escolhe de 1 a 4 colunas e de 1 a 3 linhas (até 12 partes) |
+
+Em **Menus na tela**, toque nos menus que quer abrir juntos: Equipes, Plano, Ao vivo, Análise e Manual. Cada toque abre o menu numa parte nova. Tocar de novo tira o menu da tela. Os botões continuam aparecendo em Tela cheia.
 
 Em **Equipes na tela**, marque quais equipes quer ver juntas. O contador mostra quantas estão na tela (por exemplo, "3 de 5"):
 
