@@ -54,15 +54,31 @@
     } catch (e) { return null; }
   }
 
+  // v2: tempos medidos (Kaka 48,05 / Guilherme 48,40) e stints 30/22 min.
+  const CFG_VERSION = 2;
   const saved = load() || {};
   let cfg = KS.normalizeConfig(saved.cfg || KS.DEFAULT_CONFIG);
+  if (saved.cfg && (saved.cfgVersion || 1) < CFG_VERSION) cfg = migrateCfg(cfg);
+
+  /** Quem nunca mexeu nos tempos (48,20 padrão antigo) recebe os tempos e o plano novos. */
+  function migrateCfg(c) {
+    const d = KS.DEFAULT_CONFIG;
+    const untouched = c.pilots.every((p) => Math.abs(p.lapSec - 48.2) < 1e-9);
+    if (!untouched) return c;
+    const next = { ...c, pilots: c.pilots.map((p, i) => ({ ...p, lapSec: d.pilots[i].lapSec })) };
+    if (c.stintMode === 'equal' && c.stops === d.stops && c.raceMin === d.raceMin) {
+      next.stintMode = d.stintMode;
+      next.customStintMin = d.customStintMin.slice();
+    }
+    return KS.normalizeConfig(next);
+  }
   let race = Object.assign(newRace(), saved.race || {});
   const ui = Object.assign({ tab: 'plano', sound: true }, saved.ui || {});
   let plan = KS.buildPlan(cfg);
   let planNotes = [];
 
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ cfg, race, ui })); } catch (e) { /* sem armazenamento */ }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ cfg, cfgVersion: CFG_VERSION, race, ui })); } catch (e) { /* sem armazenamento */ }
   }
 
   function pilotIndex(id) { return Math.max(0, cfg.pilots.findIndex((p) => p.id === id)); }

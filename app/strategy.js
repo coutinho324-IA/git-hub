@@ -32,13 +32,16 @@
     windowLaps: 3,
     yellowLapSec: 65,
     yellowMinStintMin: 15, // amarela só vale parada depois deste tempo de stint
+    // Voltas médias medidas no treino.
     pilots: [
-      { id: 'p1', name: 'Kaka', lapSec: 48.2 },
-      { id: 'p2', name: 'Guilherme Coutinho', lapSec: 48.2 },
+      { id: 'p1', name: 'Kaka', lapSec: 48.05 },
+      { id: 'p2', name: 'Guilherme Coutinho', lapSec: 48.4 },
     ],
     order: ['p1', 'p2', 'p1', 'p2'],
-    stintMode: 'equal', // 'equal' | 'custom'
-    customStintMin: [],
+    // Plano da equipe: Kaka (mais rápido) faz stints de 30 min, Guilherme
+    // fica com o resto (~22 min). O último stint fecha a conta.
+    stintMode: 'custom', // 'equal' | 'custom'
+    customStintMin: [30, 22.1625, 30],
   });
 
   const NUMERIC_KEYS = [
@@ -163,6 +166,14 @@
     const n = cfg.stops + 1;
     const D = driveSec(cfg);
     const { lb, ub } = stintBounds(cfg);
+    // Stint que termina em parada não encosta no máximo: deixa a janela de
+    // ±windowLaps voltas caber antes do prazo (amarela, tráfego, atraso).
+    if (cfg.maxStintMin > 0) {
+      for (let i = 0; i < n - 1; i++) {
+        const margin = cfg.windowLaps * pilotById(cfg, cfg.order[i]).lapSec;
+        ub[i] = Math.max(lb[i], ub[i] - margin);
+      }
+    }
     const notes = [];
     const sumLb = lb.reduce((a, b) => a + b, 0);
     const sumUb = ub.reduce((a, b) => a + b, 0);
@@ -323,8 +334,11 @@
     };
 
     for (const s of stops) {
-      s.window.earliestLap = lapsAt(plan, s.window.earliestSec);
-      s.window.latestLap = lapsAt(plan, s.window.latestSec);
+      // Voltas contadas como se o piloto do stint seguisse na pista até a hora.
+      const st = stints[s.index];
+      const lapAt = (sec) => st.lapFrom + Math.max(0, sec - st.startSec) / st.lapSec;
+      s.window.earliestLap = lapAt(s.window.earliestSec);
+      s.window.latestLap = lapAt(s.window.latestSec);
       const lo = Math.max(1, s.lap - cfg.windowLaps, Math.ceil(s.window.earliestLap));
       const hi = Math.max(lo, Math.min(s.lap + cfg.windowLaps, Math.floor(s.window.latestLap)));
       s.idealLaps = [lo, hi];

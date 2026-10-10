@@ -6,8 +6,15 @@ const KS = require('../app/strategy.js');
 
 const near = (a, b, tol = 1e-6) => assert.ok(Math.abs(a - b) <= tol, `${a} ≉ ${b}`);
 
+// Cenário fixo para testar a matemática: os dois a 48,20 s e stints iguais.
+const EQUAL = {
+  ...KS.DEFAULT_CONFIG,
+  stintMode: 'equal',
+  pilots: [{ name: 'Kaka', lapSec: 48.2 }, { name: 'Guilherme Coutinho', lapSec: 48.2 }],
+};
+
 test('plano padrão: 2 h, 3 paradas de 5:00, volta de 48,20 s', () => {
-  const plan = KS.buildPlan(KS.DEFAULT_CONFIG);
+  const plan = KS.buildPlan(EQUAL);
   // 300 s no box + 2 s de folga + 10 s de pit lane + 1,5 s de volta de saída
   near(plan.perStopLoss, 313.5);
   near(plan.driveSec, 7200 - 3 * 313.5);
@@ -25,13 +32,13 @@ test('plano padrão: 2 h, 3 paradas de 5:00, volta de 48,20 s', () => {
 });
 
 test('cada piloto pilota metade da prova no plano igual', () => {
-  const plan = KS.buildPlan(KS.DEFAULT_CONFIG);
+  const plan = KS.buildPlan(EQUAL);
   near(plan.perPilot.p1.driveSec, plan.driveSec / 2);
   near(plan.perPilot.p2.driveSec, plan.driveSec / 2);
 });
 
 test('janelas respeitam stint mínimo, máximo e prazo final', () => {
-  const plan = KS.buildPlan(KS.DEFAULT_CONFIG);
+  const plan = KS.buildPlan(EQUAL);
   const [s1, s2, s3] = plan.stops;
   near(s1.window.earliestSec, 5 * 60);
   near(s1.window.latestSec, 35 * 60);
@@ -48,13 +55,14 @@ test('janelas respeitam stint mínimo, máximo e prazo final', () => {
 
 test('otimizar dá mais pista ao piloto mais rápido até o stint máximo', () => {
   const cfg = KS.normalizeConfig({
-    ...KS.DEFAULT_CONFIG,
+    ...EQUAL,
     pilots: [{ name: 'Kaka', lapSec: 48.0 }, { name: 'Guilherme Coutinho', lapSec: 48.4 }],
   });
   const res = KS.optimizeStints(cfg);
   assert.ok(res.feasible);
-  near(res.durs[0], 35 * 60);
-  near(res.durs[2], 35 * 60);
+  // Até o máximo de 35 min, menos a janela de 3 voltas para o prazo não coincidir com o alvo.
+  near(res.durs[0], 35 * 60 - 3 * 48.0);
+  near(res.durs[2], 35 * 60 - 3 * 48.0);
   near(res.durs.reduce((a, b) => a + b, 0), KS.driveSec(cfg), 1e-6);
   near(res.durs[1], res.durs[3]);
 
@@ -66,7 +74,7 @@ test('otimizar dá mais pista ao piloto mais rápido até o stint máximo', () =
 
 test('otimizar respeita o tempo mínimo por piloto', () => {
   const cfg = KS.normalizeConfig({
-    ...KS.DEFAULT_CONFIG,
+    ...EQUAL,
     minDriveMin: 50,
     pilots: [{ name: 'Kaka', lapSec: 48.0 }, { name: 'Guilherme Coutinho', lapSec: 48.4 }],
   });
@@ -76,26 +84,26 @@ test('otimizar respeita o tempo mínimo por piloto', () => {
 });
 
 test('com ritmos iguais, otimizar mantém stints iguais', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   const res = KS.optimizeStints(cfg);
   for (const d of res.durs) near(d, KS.driveSec(cfg) / 4, 1e-6);
 });
 
 test('stints personalizados: o último fecha a conta e gera alerta se passar do máximo', () => {
-  const plan = KS.buildPlan({ ...KS.DEFAULT_CONFIG, stintMode: 'custom', customStintMin: [20, 20, 20] });
+  const plan = KS.buildPlan({ ...EQUAL, stintMode: 'custom', customStintMin: [20, 20, 20] });
   near(plan.stints[3].durSec, plan.driveSec - 3 * 20 * 60);
   assert.ok(plan.warnings.some((w) => w.level === 'critical' && /stint máximo/.test(w.text)));
 });
 
 test('normalizeConfig ajusta ordem e listas quando muda o número de paradas', () => {
-  const cfg = KS.normalizeConfig({ ...KS.DEFAULT_CONFIG, stops: 5 });
+  const cfg = KS.normalizeConfig({ ...EQUAL, stops: 5 });
   assert.equal(cfg.order.length, 6);
   assert.equal(cfg.customStintMin.length, 5);
   assert.equal(KS.buildPlan(cfg).stops.length, 5);
 });
 
 test('ao vivo: estados da janela da próxima parada', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   const plan = KS.buildPlan(cfg);
   const race = { laps: [], pits: [], pit: null, yellow: false, stintPilots: ['p1'] };
   assert.equal(KS.liveStatus(cfg, plan, race, 60).nextStop.state, 'locked');
@@ -108,7 +116,7 @@ test('ao vivo: estados da janela da próxima parada', () => {
 });
 
 test('ao vivo: bandeira amarela com janela aberta recomenda parar', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   const plan = KS.buildPlan(cfg);
   const race = { laps: [], pits: [], pit: null, yellow: true, stintPilots: ['p1'] };
   const st = KS.liveStatus(cfg, plan, race, 20 * 60);
@@ -116,7 +124,7 @@ test('ao vivo: bandeira amarela com janela aberta recomenda parar', () => {
 });
 
 test('ao vivo: parada antecipada redistribui o tempo restante', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   const plan = KS.buildPlan(cfg);
   const race = {
     laps: [], pit: null, yellow: false, stintPilots: ['p1', 'p2'],
@@ -132,7 +140,7 @@ test('ao vivo: parada antecipada redistribui o tempo restante', () => {
 });
 
 test('ao vivo: alerta de queda de ritmo', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   const plan = KS.buildPlan(cfg);
   const laps = [49.0, 48.9, 49.1].map((sec, i) => ({ n: i + 1, sec, pilot: 'p1', stint: 0, kind: 'green' }));
   const st = KS.liveStatus(cfg, plan, { laps, pits: [], pit: null, yellow: false, stintPilots: ['p1'] }, 10 * 60);
@@ -154,7 +162,7 @@ test('estatísticas de volta ignoram volta de saída e amarela', () => {
 });
 
 test('tempo de pista por piloto soma stints fechados e o atual', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   const race = {
     pit: null, stintPilots: ['p1', 'p2'],
     pits: [{ inSec: 1500, outSec: 1802 }],
@@ -165,12 +173,12 @@ test('tempo de pista por piloto soma stints fechados e o atual', () => {
 });
 
 test('ganho por segundo de parada sob amarela', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   near(KS.yellowGainPerSec(cfg, 48.2), 1 - 48.2 / 65);
 });
 
 test('amarela no começo do stint não chama para o box', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   const plan = KS.buildPlan(cfg);
   const race = { laps: [], pits: [], pit: null, yellow: true, stintPilots: ['p1'] };
   const st = KS.liveStatus(cfg, plan, race, 10 * 60);
@@ -183,7 +191,7 @@ test('amarela no começo do stint não chama para o box', () => {
 });
 
 test('placa de box: OK, contagem de voltas, BOX e RITMO', () => {
-  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const cfg = KS.normalizeConfig(EQUAL);
   const plan = KS.buildPlan(cfg);
   const race = { laps: [], pits: [], pit: null, yellow: false, stintPilots: ['p1'] };
   const target = plan.stops[0].inSec;
@@ -193,4 +201,29 @@ test('placa de box: OK, contagem de voltas, BOX e RITMO', () => {
   assert.equal(KS.liveStatus(cfg, plan, race, 34 * 60).sign.text, 'BOX');
   const slow = [49.0, 48.9, 49.1].map((sec, i) => ({ n: i + 1, sec, pilot: 'p1', stint: 0, kind: 'green' }));
   assert.equal(KS.liveStatus(cfg, plan, { ...race, laps: slow }, 10 * 60).sign.text, 'RITMO');
+});
+
+test('plano da equipe: Kaka 48,05 s com stints de 30 min, Guilherme 48,40 s', () => {
+  const plan = KS.buildPlan(KS.DEFAULT_CONFIG);
+  assert.deepEqual(plan.stints.map((s) => s.pilotName), ['Kaka', 'Guilherme Coutinho', 'Kaka', 'Guilherme Coutinho']);
+  near(plan.stints[0].durSec, 30 * 60);
+  near(plan.stints[2].durSec, 30 * 60);
+  near(plan.stints[1].durSec, plan.stints[3].durSec, 1e-6);
+  near(plan.perPilot.p1.driveSec, 60 * 60);
+  assert.equal(plan.warnings.length, 0);
+  // Mais voltas que dividir igual.
+  const equal = KS.buildPlan({ ...KS.DEFAULT_CONFIG, stintMode: 'equal' });
+  assert.ok(plan.totalLaps > equal.totalLaps);
+  // Toda parada tem folga até o prazo e a janela ideal passa da volta-alvo.
+  for (const s of plan.stops) {
+    assert.ok(s.window.latestSec - s.inSec >= 3 * 60, `parada ${s.index + 1} sem folga`);
+    assert.ok(s.idealLaps[1] > s.lap);
+  }
+});
+
+test('otimizar nunca marca a parada em cima do prazo', () => {
+  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const res = KS.optimizeStints(cfg);
+  const plan = KS.buildPlan({ ...cfg, stintMode: 'custom', customStintMin: res.durs.slice(0, -1).map((d) => d / 60) });
+  for (const s of plan.stops) assert.ok(s.idealLaps[1] > s.lap, `parada ${s.index + 1} sem janela depois do alvo`);
 });
