@@ -692,7 +692,7 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
 @media (max-width: 760px) {
   .tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; max-width: none;
-    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
     background: var(--board); border-top: 1px solid var(--board-2); box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
   }
@@ -841,7 +841,6 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   .cmp-pane { grid-area: auto !important; overflow: visible; }
   .cmp-head { position: static; border-radius: var(--radius) var(--radius) 0 0; }
   .cmp-model { width: calc((100% - 24px) / 4); min-width: 0; }
-  .tabs button { font-size: 0.625rem; letter-spacing: 0.02em; }
 }
 
 /* Menus do app dentro das partes da tela dividida. As regras de celular
@@ -918,24 +917,24 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
 .config-btn[aria-pressed="true"] { border-color: var(--board-hi); color: var(--board-hi); }
 @media (max-width: 900px) { .config-btn .theme-label { display: none; } .config-btn { width: 34px; padding: 0; justify-content: center; } }
 
-.set-layout { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: var(--gap); align-items: start; }
-.set-nav { padding: 8px; gap: 4px; }
+.set-layout { display: flex; flex-direction: column; gap: var(--gap); }
+.set-nav { flex-direction: row; flex-wrap: wrap; padding: 6px; gap: 4px; }
 .set-nav button {
-  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 16px; cursor: pointer;
   border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink-2); text-align: left;
   font-family: var(--f-display); font-weight: 700; font-size: var(--step-0); text-transform: uppercase; letter-spacing: 0.05em;
 }
 .set-nav button:hover { background: var(--surface-2); color: var(--ink); }
-.set-nav button[aria-current="page"] { background: var(--accent-wash); color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.set-nav button[aria-current="page"] { background: var(--accent-wash); color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
 .set-nav svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .set-nav svg .fill { fill: currentColor; stroke: none; }
 .set-pages { min-width: 0; }
 @media (max-width: 760px) {
-  .set-layout { grid-template-columns: minmax(0, 1fr); }
-  .set-nav { flex-direction: row; }
-  .set-nav button { justify-content: center; }
-  .set-nav button[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--accent); }
+  .set-nav { flex-wrap: nowrap; }
+  .set-nav button { flex: 1 1 0; justify-content: center; padding: 8px 6px; font-size: 0.875rem; letter-spacing: 0.03em; min-width: 0; }
 }
+@media (max-width: 420px) { .set-nav svg { display: none; } }
+.compare:fullscreen .set-nav { display: none; }
 
 .menu-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .menu-row {
@@ -1015,7 +1014,6 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   <nav class="wrap tabs" role="tablist" aria-label="Seções">
     <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 13.6c2.8.2 5 2.2 5 5"/></svg><span>Equipes</span></button>
     <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4.5L18 13H5"/><path d="M9 4v9M13 4v9"/></svg><span>Plano</span></button>
-    <button type="button" role="tab" id="t-comparar" data-tab="comparar" aria-controls="tab-comparar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 12h9"/></svg><span>Comparar</span></button>
     <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M19 6.5l1.5-1.5"/></svg><span>Ao vivo</span></button>
     <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M6 16l4-5 3 3 5-7"/></svg><span>Análise</span></button>
     <button type="button" role="tab" id="t-manual" data-tab="manual" aria-controls="tab-manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Manual</span></button>
@@ -1174,12 +1172,24 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     </div>
   </section>
 
-  <!-- ============ COMPARAR ============ -->
-  <section id="tab-comparar" class="panel compare" role="tabpanel" aria-labelledby="t-comparar" hidden>
+  <!-- ============ MULTI TELAS (dentro de Configurações) ============ -->
+  <section id="tab-comparar" class="panel compare" aria-labelledby="cmpTitle" hidden>
     <div class="panel-head">
-      <h1>Comparar estratégias</h1>
-      <p class="lede">Divida a tela e escolha o que cada parte mostra, tudo ao mesmo tempo: um menu do app (Plano, Ao vivo, Análise, Equipes, Manual) ou a estratégia de uma equipe. As estratégias seguem as regras da prova do Plano, então dá para ver quem termina com mais voltas.</p>
+      <span class="eyebrow">Configurações</span>
+      <h1 id="cmpTitle">Multi telas</h1>
+      <p class="lede">Escolha o que cada parte da tela mostra, tudo ao mesmo tempo: um menu do app ou a estratégia de uma equipe.</p>
     </div>
+    <nav class="card set-nav" data-subnav aria-label="Seções das configurações">
+      <button type="button" data-sub="menus">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menus</span>
+      </button>
+      <button type="button" data-sub="multi">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 12h9"/></svg><span>Multi telas</span>
+      </button>
+      <button type="button" data-sub="aparencia">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg><span>Aparência</span>
+      </button>
+    </nav>
     <div class="card cmp-bar">
       <div class="cmp-bar-main">
         <span class="eyebrow" id="cmpModelsLabel">Divisão da tela</span>
@@ -1507,9 +1517,12 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
       <p class="lede">Deixe o app do jeito da equipe. Fica salvo neste aparelho.</p>
     </div>
     <div class="set-layout">
-      <nav class="card set-nav" id="setNav" aria-label="Seções das configurações">
-        <button type="button" data-sub="menus" aria-current="page">
+      <nav class="card set-nav" data-subnav aria-label="Seções das configurações">
+        <button type="button" data-sub="menus">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menus</span>
+        </button>
+        <button type="button" data-sub="multi">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 12h9"/></svg><span>Multi telas</span>
         </button>
         <button type="button" data-sub="aparencia">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg><span>Aparência</span>
@@ -2454,10 +2467,11 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
 
   const KS = window.KartStrategy;
   const STORAGE_KEY = 'ajm-kart-v1';
-  // Menus da barra (a equipe escolhe nome e ordem em Configurações) e a
-  // página de configurações, aberta pela engrenagem do topo.
-  const MENU_IDS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
-  const TABS = [...MENU_IDS, 'config'];
+  // Menus da barra (a equipe escolhe nome e ordem em Configurações). Multi
+  // telas ('comparar') e as configurações abrem pela engrenagem do topo.
+  const MENU_IDS = ['equipes', 'plano', 'vivo', 'analise', 'manual'];
+  const SETTINGS_TABS = ['comparar', 'config'];
+  const TABS = [...MENU_IDS, ...SETTINGS_TABS];
   // Uma cor por posição do piloto no cadastro (até 6) e a cor do texto sobre ela.
   const PILOT_VARS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
   const PILOT_ON = ['#ffffff', '#111517', '#111517', '#111517', '#111517', '#ffffff'];
@@ -2650,7 +2664,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   let prevTab = 'plano';
   function setTab(tab) {
     if (!TABS.includes(tab)) tab = 'plano';
-    if (tab === 'config' && ui.tab !== 'config') prevTab = ui.tab;
+    if (SETTINGS_TABS.includes(tab) && MENU_IDS.includes(ui.tab)) prevTab = ui.tab;
     ui.tab = tab;
     document.body.dataset.tab = tab;
     if (tab !== 'comparar') undockAll();
@@ -2663,7 +2677,8 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     }
     // Em Configurações nenhum menu fica marcado; o primeiro continua alcançável pelo teclado.
     if (!MENU_IDS.includes(tab)) $(`t-${menuOrder()[0]}`).tabIndex = 0;
-    $('btnConfig').setAttribute('aria-pressed', String(tab === 'config'));
+    $('btnConfig').setAttribute('aria-pressed', String(SETTINGS_TABS.includes(tab)));
+    renderSubNav();
     try { history.replaceState(null, '', `#${tab}`); } catch (e) { /* ok */ }
     renderTab();
     save();
@@ -5127,18 +5142,32 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   }
   applyMenus();
 
-  $('btnConfig').addEventListener('click', () => setTab(ui.tab === 'config' ? prevTab : 'config'));
-  $('setNav').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-sub]');
-    if (!b) return;
-    setSub = b.dataset.sub;
-    renderConfig();
-  });
+  // Engrenagem: abre as configurações; tocada de novo, volta ao menu de antes.
+  $('btnConfig').addEventListener('click', () => setTab(SETTINGS_TABS.includes(ui.tab) ? prevTab : 'config'));
+
+  // Submenus (Menus, Multi telas, Aparência), repetidos no topo das duas telas.
+  for (const nav of document.querySelectorAll('[data-subnav]')) {
+    nav.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sub]');
+      if (!b) return;
+      if (b.dataset.sub === 'multi') {
+        setTab('comparar');
+        return;
+      }
+      setSub = b.dataset.sub;
+      if (ui.tab === 'config') renderConfig();
+      else setTab('config');
+    });
+  }
+  function renderSubNav() {
+    const cur = ui.tab === 'comparar' ? 'multi' : setSub;
+    for (const b of document.querySelectorAll('[data-subnav] [data-sub]')) {
+      b.setAttribute('aria-current', b.dataset.sub === cur ? 'page' : 'false');
+    }
+  }
 
   function renderConfig() {
-    for (const b of $('setNav').querySelectorAll('[data-sub]')) {
-      b.setAttribute('aria-current', b.dataset.sub === setSub ? 'page' : 'false');
-    }
+    renderSubNav();
     $('set-menus').hidden = setSub !== 'menus';
     $('set-aparencia').hidden = setSub !== 'aparencia';
     if (setSub === 'menus') renderMenuEditor();
