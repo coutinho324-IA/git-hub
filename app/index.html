@@ -31,6 +31,7 @@
     </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Seções">
+    <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes">Equipes</button>
     <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano">Plano</button>
     <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo">Ao vivo</button>
     <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise">Análise</button>
@@ -40,6 +41,34 @@
 </header>
 
 <main class="wrap">
+
+  <!-- ============ EQUIPES ============ -->
+  <section id="tab-equipes" class="panel" role="tabpanel" aria-labelledby="t-equipes" hidden>
+    <div class="panel-head">
+      <h1>Equipes</h1>
+      <p class="lede">Cadastre as equipes com oficina, pilotos e volta média de cada um. A equipe em uso alimenta o plano, as estratégias e a corrida.</p>
+    </div>
+    <div class="teams-layout">
+      <div class="team-col">
+        <div class="team-list" id="teamList"></div>
+        <button type="button" class="btn btn-ghost" id="btnNewTeam">+ Nova equipe</button>
+      </div>
+      <form class="card team-editor" id="teamEditor" autocomplete="off" novalidate>
+        <h2 id="teamEditorTitle">Editar equipe</h2>
+        <label class="field"><span>Nome da equipe</span><input id="te-name" type="text" maxlength="60"></label>
+        <label class="field"><span>Oficina</span><input id="te-workshop" type="text" maxlength="60" placeholder="Nome da oficina"></label>
+        <label class="field"><span>Quantidade de pilotos</span><select id="te-count"></select></label>
+        <div class="te-pilots" id="te-pilots"></div>
+        <div class="alerts" id="te-errors"></div>
+        <div class="btn-row">
+          <button type="submit" class="btn" id="te-save">Salvar</button>
+          <button type="button" class="btn btn-ghost" id="te-cancel">Cancelar</button>
+          <button type="button" class="btn btn-ghost btn-danger" id="te-delete" data-confirm="Toque de novo para excluir">Excluir equipe</button>
+        </div>
+        <p class="hint" id="te-status" role="status"></p>
+      </form>
+    </div>
+  </section>
 
   <!-- ============ PLANO ============ -->
   <section id="tab-plano" class="panel" role="tabpanel" aria-labelledby="t-plano">
@@ -84,11 +113,9 @@
       <form id="cfgForm" class="card cfg" autocomplete="off">
         <fieldset>
           <legend>Equipe</legend>
-          <label class="field field-wide"><span>Nome da equipe</span><input id="f-teamName" data-key="teamName" type="text"></label>
-          <label class="field"><span><i class="dot dot-p1"></i>Piloto 1</span><input id="f-p0-name" data-pilot="0" data-pkey="name" type="text"></label>
-          <label class="field"><span>Volta média (s)</span><input id="f-p0-lap" data-pilot="0" data-pkey="lapSec" type="number" inputmode="decimal" step="0.01" min="10"></label>
-          <label class="field"><span><i class="dot dot-p2"></i>Piloto 2</span><input id="f-p1-name" data-pilot="1" data-pkey="name" type="text"></label>
-          <label class="field"><span>Volta média (s)</span><input id="f-p1-lap" data-pilot="1" data-pkey="lapSec" type="number" inputmode="decimal" step="0.01" min="10"></label>
+          <label class="field field-wide"><span>Equipe em uso</span><select id="teamSelect"></select></label>
+          <ul class="team-summary field-wide" id="teamSummary"></ul>
+          <button type="button" class="btn btn-ghost field-wide" id="btnEditTeams">Editar equipes e pilotos</button>
         </fieldset>
         <fieldset>
           <legend>Prova</legend>
@@ -320,7 +347,7 @@
   <!-- ============ MANUAL ============ -->
   <section id="tab-manual" class="panel manual" role="tabpanel" aria-labelledby="t-manual" hidden>
     <div class="panel-head">
-      <h1>Estratégia dos dois pilotos</h1>
+      <h1 data-m="manualTitle">Estratégia dos pilotos</h1>
       <p class="lede">A <span data-m="team">Aristeu Just Motors</span> corre contra o relógio, não contra as outras equipes. Ninguém precisa acompanhar os rivais: o plano é fixo, o app avisa quando parar e o piloto que está descansando cuida do box.</p>
     </div>
 
@@ -330,7 +357,7 @@
         <div><dt>Tempo parado obrigatório</dt><dd><span data-m="pittotal">15:00</span></dd><p>Igual para todo mundo. Só perde quem sai atrasado do box.</p></div>
         <div><dt>Tempo de pista</dt><dd><span data-m="drive">1:44:20</span></dd><p>Prova menos paradas e perdas de pit lane.</p></div>
         <div><dt>Voltas estimadas</dt><dd><span data-m="laps">129,9</span></dd><p>Com volta média de <span data-m="lap">48,20</span> s.</p></div>
-        <div><dt>Stint médio</dt><dd><span data-m="stint">26:05</span></dd><p>Cerca de <span data-m="stintlaps">32</span> voltas. Cada piloto faz <span data-m="stintsper">2</span> stints.</p></div>
+        <div><dt>Stint médio</dt><dd><span data-m="stint">26:05</span></dd><p>Cerca de <span data-m="stintlaps">32</span> voltas. <span data-m="rotation">2 pilotos se revezam em 4 stints.</span></p></div>
       </dl>
 
       <h2>Ficha de cada piloto</h2>
@@ -386,7 +413,7 @@
         </table>
       </div>
 
-      <h2>A troca com só os dois pilotos</h2>
+      <h2>A troca no box só com os pilotos</h2>
       <p>Quem está fora do kart faz o papel de equipe de box. Não precisa de mais ninguém.</p>
       <ol class="protocol">
         <li><span class="t">Antes</span><p>Quem vai entrar já está de capacete e luvas, com o celular, no ponto de parada, 3 voltas antes do box.</p></li>

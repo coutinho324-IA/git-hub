@@ -266,3 +266,75 @@ test('estratégias A e B: cada piloto abre, mesmo total de voltas e mesmo tempo 
   near(b.plan.stints[0].durSec, a.plan.stints[1].durSec, 1e-6);
   near(b.plan.stints[1].durSec, 30 * 60, 1e-6);
 });
+
+test('equipes: 3 pilotos se revezam e cada um pode abrir a prova', () => {
+  const cfg = KS.applyTeam(KS.DEFAULT_CONFIG, {
+    name: 'Equipe Teste',
+    workshop: 'Oficina do Zé',
+    pilots: [{ name: 'Ana', lapSec: 48.0 }, { name: 'Bruno', lapSec: 48.3 }, { name: 'Caio', lapSec: 48.6 }],
+  });
+  assert.equal(cfg.teamName, 'Equipe Teste');
+  assert.equal(cfg.workshopName, 'Oficina do Zé');
+  assert.deepEqual(cfg.pilots.map((p) => p.id), ['p1', 'p2', 'p3']);
+  assert.deepEqual(cfg.order, ['p1', 'p2', 'p3', 'p1']);
+  assert.equal(cfg.stintMode, 'equal'); // mudou a quantidade de pilotos
+  const plan = KS.buildPlan(cfg);
+  assert.equal(plan.warnings.length, 0);
+  const sc = KS.starterScenarios(cfg);
+  assert.deepEqual(sc.map((s) => s.starterName), ['Ana', 'Bruno', 'Caio']);
+  assert.deepEqual(sc[1].plan.stints.map((s) => s.pilotName), ['Bruno', 'Caio', 'Ana', 'Bruno']);
+  // Quem abre pilota 2 stints: abrir com o mais rápido dá mais voltas.
+  assert.ok(sc[0].plan.totalLaps > sc[2].plan.totalLaps);
+  const t = KS.paceTargets(plan);
+  assert.equal(t.perPilot.length, 3);
+});
+
+test('equipes: mesma quantidade de pilotos mantém escala e stints', () => {
+  const cfg = KS.applyTeam(KS.DEFAULT_CONFIG, {
+    name: 'Aristeu Just Motors',
+    workshop: '',
+    pilots: [{ name: 'Kaka', lapSec: 47.9 }, { name: 'Guilherme Coutinho', lapSec: 48.4 }],
+  });
+  assert.equal(cfg.stintMode, 'custom');
+  assert.deepEqual(cfg.customStintMin, KS.DEFAULT_CONFIG.customStintMin);
+  near(cfg.pilots[0].lapSec, 47.9);
+});
+
+test('equipes: validação e equipe a partir da configuração', () => {
+  assert.deepEqual(KS.validateTeam({ name: 'X', pilots: [{ name: 'A', lapSec: 48 }] }), []);
+  const errs = KS.validateTeam({ name: ' ', pilots: [{ name: '', lapSec: 5 }] });
+  assert.equal(errs.length, 3);
+  assert.ok(KS.validateTeam({ name: 'X', pilots: [] }).length > 0);
+  const tooMany = Array.from({ length: KS.MAX_PILOTS + 1 }, (_, i) => ({ name: `P${i}`, lapSec: 48 }));
+  assert.ok(KS.validateTeam({ name: 'X', pilots: tooMany }).some((e) => /No máximo/.test(e)));
+  const team = KS.teamFromConfig(KS.DEFAULT_CONFIG, 't9');
+  assert.equal(team.id, 't9');
+  assert.equal(team.name, 'Aristeu Just Motors');
+  assert.deepEqual(team.pilots.map((p) => p.name), ['Kaka', 'Guilherme Coutinho']);
+});
+
+test('normalizeConfig aceita de 1 a 6 pilotos', () => {
+  const one = KS.normalizeConfig({ ...KS.DEFAULT_CONFIG, order: undefined, pilots: [{ name: 'Solo', lapSec: 48 }] });
+  assert.deepEqual(one.order, ['p1', 'p1', 'p1', 'p1']);
+  const many = KS.normalizeConfig({ ...KS.DEFAULT_CONFIG, pilots: Array.from({ length: 9 }, (_, i) => ({ name: `P${i}`, lapSec: 48 })) });
+  assert.equal(many.pilots.length, KS.MAX_PILOTS);
+});
+
+test('equipes: cada equipe guarda a própria escala', () => {
+  const aristeu = KS.teamFromConfig(KS.DEFAULT_CONFIG, 't1');
+  const trio = {
+    id: 't2', name: 'Trio', workshop: '',
+    pilots: [{ name: 'A', lapSec: 48 }, { name: 'B', lapSec: 48 }, { name: 'C', lapSec: 48 }],
+  };
+  let cfg = KS.applyTeam(KS.DEFAULT_CONFIG, trio);
+  assert.equal(cfg.stintMode, 'equal');
+  cfg = KS.applyTeam(cfg, aristeu); // volta: escala 30/22 da própria equipe
+  assert.equal(cfg.stintMode, 'custom');
+  assert.deepEqual(cfg.customStintMin, KS.DEFAULT_CONFIG.customStintMin);
+  assert.deepEqual(cfg.order, ['p1', 'p2', 'p1', 'p2']);
+  // Escala salva para outra quantidade de pilotos é ignorada.
+  const grown = { ...aristeu, pilots: [...aristeu.pilots, { name: 'Novo', lapSec: 48.5 }] };
+  const g = KS.applyTeam(KS.DEFAULT_CONFIG, grown);
+  assert.deepEqual(g.order, ['p1', 'p2', 'p3', 'p1']);
+  assert.equal(g.stintMode, 'equal');
+});
