@@ -98,6 +98,10 @@
   --board-hi: #ffd23f;
   --p1: #2a78d6;
   --p2: #eb6834;
+  --p3: #1baf7a;
+  --p4: #eda100;
+  --p5: #e87ba4;
+  --p6: #008300;
   --pit: #9aa1a4;
   --good: #0ca30c;
   --good-ink: #006300;
@@ -139,6 +143,10 @@
     --board-hi: #ffd23f;
     --p1: #3987e5;
     --p2: #d95926;
+    --p3: #199e70;
+    --p4: #c98500;
+    --p5: #d55181;
+    --p6: #008300;
     --pit: #6c7477;
     --good-ink: #2fc42f;
     --warn-ink: #fab219;
@@ -165,6 +173,10 @@
   --board-hi: #ffd23f;
   --p1: #3987e5;
   --p2: #d95926;
+  --p3: #199e70;
+  --p4: #c98500;
+  --p5: #d55181;
+  --p6: #008300;
   --pit: #6c7477;
   --good-ink: #2fc42f;
   --warn-ink: #fab219;
@@ -293,6 +305,24 @@ main.wrap { padding-block: 24px 64px; }
 .svg-axis { stroke: var(--line); stroke-width: 1; }
 .seg { cursor: default; }
 .seg:hover, .seg:focus { filter: brightness(1.12); outline: none; }
+
+/* ---------- Equipes ---------- */
+.teams-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: var(--gap); align-items: start; }
+@media (max-width: 900px) { .teams-layout { grid-template-columns: minmax(0, 1fr); } }
+.team-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.team-list { display: flex; flex-direction: column; gap: 12px; }
+.team-card[data-active="true"] { border-color: var(--accent); }
+.team-card[data-editing="true"] { box-shadow: 0 0 0 2px var(--accent-wash); }
+.team-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.team-card-head h3 { font-size: var(--step-2); text-transform: uppercase; }
+.team-workshop { display: block; font-size: var(--step--1); color: var(--ink-2); margin-top: 2px; }
+.team-summary { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.team-summary li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 0.9375rem; }
+.team-summary li .dot { margin: 0; }
+.team-summary li b { font-variant-numeric: tabular-nums; }
+.team-editor { gap: 12px; }
+.te-pilots { display: flex; flex-direction: column; gap: 10px; }
+.te-pilot { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 
 /* ---------- Meta e estratégias ---------- */
 .meta-ref { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
@@ -577,6 +607,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Seções">
+    <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes">Equipes</button>
     <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano">Plano</button>
     <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo">Ao vivo</button>
     <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise">Análise</button>
@@ -586,6 +617,34 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
 </header>
 
 <main class="wrap">
+
+  <!-- ============ EQUIPES ============ -->
+  <section id="tab-equipes" class="panel" role="tabpanel" aria-labelledby="t-equipes" hidden>
+    <div class="panel-head">
+      <h1>Equipes</h1>
+      <p class="lede">Cadastre as equipes com oficina, pilotos e volta média de cada um. A equipe em uso alimenta o plano, as estratégias e a corrida.</p>
+    </div>
+    <div class="teams-layout">
+      <div class="team-col">
+        <div class="team-list" id="teamList"></div>
+        <button type="button" class="btn btn-ghost" id="btnNewTeam">+ Nova equipe</button>
+      </div>
+      <form class="card team-editor" id="teamEditor" autocomplete="off" novalidate>
+        <h2 id="teamEditorTitle">Editar equipe</h2>
+        <label class="field"><span>Nome da equipe</span><input id="te-name" type="text" maxlength="60"></label>
+        <label class="field"><span>Oficina</span><input id="te-workshop" type="text" maxlength="60" placeholder="Nome da oficina"></label>
+        <label class="field"><span>Quantidade de pilotos</span><select id="te-count"></select></label>
+        <div class="te-pilots" id="te-pilots"></div>
+        <div class="alerts" id="te-errors"></div>
+        <div class="btn-row">
+          <button type="submit" class="btn" id="te-save">Salvar</button>
+          <button type="button" class="btn btn-ghost" id="te-cancel">Cancelar</button>
+          <button type="button" class="btn btn-ghost btn-danger" id="te-delete" data-confirm="Toque de novo para excluir">Excluir equipe</button>
+        </div>
+        <p class="hint" id="te-status" role="status"></p>
+      </form>
+    </div>
+  </section>
 
   <!-- ============ PLANO ============ -->
   <section id="tab-plano" class="panel" role="tabpanel" aria-labelledby="t-plano">
@@ -630,11 +689,9 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       <form id="cfgForm" class="card cfg" autocomplete="off">
         <fieldset>
           <legend>Equipe</legend>
-          <label class="field field-wide"><span>Nome da equipe</span><input id="f-teamName" data-key="teamName" type="text"></label>
-          <label class="field"><span><i class="dot dot-p1"></i>Piloto 1</span><input id="f-p0-name" data-pilot="0" data-pkey="name" type="text"></label>
-          <label class="field"><span>Volta média (s)</span><input id="f-p0-lap" data-pilot="0" data-pkey="lapSec" type="number" inputmode="decimal" step="0.01" min="10"></label>
-          <label class="field"><span><i class="dot dot-p2"></i>Piloto 2</span><input id="f-p1-name" data-pilot="1" data-pkey="name" type="text"></label>
-          <label class="field"><span>Volta média (s)</span><input id="f-p1-lap" data-pilot="1" data-pkey="lapSec" type="number" inputmode="decimal" step="0.01" min="10"></label>
+          <label class="field field-wide"><span>Equipe em uso</span><select id="teamSelect"></select></label>
+          <ul class="team-summary field-wide" id="teamSummary"></ul>
+          <button type="button" class="btn btn-ghost field-wide" id="btnEditTeams">Editar equipes e pilotos</button>
         </fieldset>
         <fieldset>
           <legend>Prova</legend>
@@ -866,7 +923,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   <!-- ============ MANUAL ============ -->
   <section id="tab-manual" class="panel manual" role="tabpanel" aria-labelledby="t-manual" hidden>
     <div class="panel-head">
-      <h1>Estratégia dos dois pilotos</h1>
+      <h1 data-m="manualTitle">Estratégia dos pilotos</h1>
       <p class="lede">A <span data-m="team">Aristeu Just Motors</span> corre contra o relógio, não contra as outras equipes. Ninguém precisa acompanhar os rivais: o plano é fixo, o app avisa quando parar e o piloto que está descansando cuida do box.</p>
     </div>
 
@@ -876,7 +933,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
         <div><dt>Tempo parado obrigatório</dt><dd><span data-m="pittotal">15:00</span></dd><p>Igual para todo mundo. Só perde quem sai atrasado do box.</p></div>
         <div><dt>Tempo de pista</dt><dd><span data-m="drive">1:44:20</span></dd><p>Prova menos paradas e perdas de pit lane.</p></div>
         <div><dt>Voltas estimadas</dt><dd><span data-m="laps">129,9</span></dd><p>Com volta média de <span data-m="lap">48,20</span> s.</p></div>
-        <div><dt>Stint médio</dt><dd><span data-m="stint">26:05</span></dd><p>Cerca de <span data-m="stintlaps">32</span> voltas. Cada piloto faz <span data-m="stintsper">2</span> stints.</p></div>
+        <div><dt>Stint médio</dt><dd><span data-m="stint">26:05</span></dd><p>Cerca de <span data-m="stintlaps">32</span> voltas. <span data-m="rotation">2 pilotos se revezam em 4 stints.</span></p></div>
       </dl>
 
       <h2>Ficha de cada piloto</h2>
@@ -932,7 +989,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
         </table>
       </div>
 
-      <h2>A troca com só os dois pilotos</h2>
+      <h2>A troca no box só com os pilotos</h2>
       <p>Quem está fora do kart faz o papel de equipe de box. Não precisa de mais ninguém.</p>
       <ol class="protocol">
         <li><span class="t">Antes</span><p>Quem vai entrar já está de capacete e luvas, com o celular, no ponto de parada, 3 voltas antes do box.</p></li>
@@ -1002,8 +1059,12 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  const MAX_PILOTS = 6;
+  const NEW_PILOT_LAP = 48.2;
+
   const DEFAULT_CONFIG = Object.freeze({
     teamName: 'Aristeu Just Motors',
+    workshopName: '',
     raceMin: 120,
     stops: 3,
     minPitSec: 300,
@@ -1056,25 +1117,30 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   function normalizeConfig(input) {
     const src = input || {};
     const cfg = {};
-    cfg.teamName = String(src.teamName || DEFAULT_CONFIG.teamName);
+    cfg.teamName = String(src.teamName || DEFAULT_CONFIG.teamName).trim() || DEFAULT_CONFIG.teamName;
+    cfg.workshopName = String(src.workshopName || '').trim();
     for (const key of NUMERIC_KEYS) cfg[key] = Math.max(0, num(src[key], DEFAULT_CONFIG[key]));
     cfg.stops = clamp(Math.round(cfg.stops), 0, 10);
     cfg.raceMin = Math.max(1, cfg.raceMin);
     cfg.yellowLapSec = Math.max(1, cfg.yellowLapSec);
 
-    const srcPilots = Array.isArray(src.pilots) ? src.pilots : DEFAULT_CONFIG.pilots;
-    cfg.pilots = DEFAULT_CONFIG.pilots.map((def, i) => {
-      const p = srcPilots[i] || {};
+    // De 1 a MAX_PILOTS pilotos; ids pela posição (p1, p2, ...).
+    const srcPilots = Array.isArray(src.pilots) && src.pilots.length
+      ? src.pilots.slice(0, MAX_PILOTS)
+      : DEFAULT_CONFIG.pilots;
+    cfg.pilots = srcPilots.map((p, i) => {
+      const fallbackName = `Piloto ${i + 1}`;
       return {
-        id: def.id,
-        name: String(p.name || def.name),
-        lapSec: Math.max(10, num(p.lapSec, def.lapSec)),
+        id: `p${i + 1}`,
+        name: String((p && p.name) || fallbackName).trim() || fallbackName,
+        lapSec: Math.max(10, num(p && p.lapSec, NEW_PILOT_LAP)),
       };
     });
 
     const ids = cfg.pilots.map((p) => p.id);
     const n = cfg.stops + 1;
-    const srcOrder = Array.isArray(src.order) ? src.order : DEFAULT_CONFIG.order;
+    // Sem ordem informada: os pilotos se revezam na ordem do cadastro.
+    const srcOrder = Array.isArray(src.order) ? src.order : [];
     cfg.order = [];
     for (let i = 0; i < n; i++) {
       const id = srcOrder[i];
@@ -1561,8 +1627,9 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   }
 
   /**
-   * Duas estratégias: cada piloto abrindo a prova. Cada piloto mantém o tempo
-   * de stint que tem no plano atual; o último stint fecha a conta.
+   * Uma estratégia por piloto abrindo a prova; os outros entram em rodízio na
+   * ordem do cadastro. Cada piloto mantém o tempo de stint que tem no plano
+   * atual; o último stint fecha a conta.
    */
   function starterScenarios(rawCfg) {
     const cfg = normalizeConfig(rawCfg);
@@ -1576,9 +1643,9 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       stintLen[p.id] = pick.length ? pick.reduce((a, st) => a + st.durSec, 0) / pick.length : base.driveSec / n;
     }
     const currentStarter = cfg.order[0];
+    const P = cfg.pilots.length;
     return cfg.pilots.map((starter, si) => {
-      const other = cfg.pilots[(si + 1) % cfg.pilots.length];
-      const order = Array.from({ length: n }, (_, i) => (i % 2 === 0 ? starter.id : other.id));
+      const order = Array.from({ length: n }, (_, i) => cfg.pilots[(si + i) % P].id);
       const scfg = normalizeConfig({
         ...cfg,
         order,
@@ -1603,6 +1670,67 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     });
   }
 
+  // ======================= EQUIPES =======================
+
+  /** Equipe cadastrada a partir da configuração (nome, oficina e pilotos). */
+  function teamFromConfig(rawCfg, id) {
+    const cfg = normalizeConfig(rawCfg);
+    return {
+      id: id || 't1',
+      name: cfg.teamName,
+      workshop: cfg.workshopName,
+      pilots: cfg.pilots.map((p) => ({ name: p.name, lapSec: p.lapSec })),
+      plan: planOf(cfg),
+    };
+  }
+
+  /** Escala da equipe (quem pilota cada stint e a duração), guardada junto da equipe. */
+  function planOf(rawCfg) {
+    const cfg = normalizeConfig(rawCfg);
+    return {
+      pilotCount: cfg.pilots.length,
+      order: cfg.order.slice(),
+      stintMode: cfg.stintMode,
+      customStintMin: cfg.customStintMin.slice(),
+    };
+  }
+
+  /** Problemas que impedem salvar a equipe (lista vazia = pode salvar). */
+  function validateTeam(team) {
+    const errors = [];
+    if (!team || !String(team.name || '').trim()) errors.push('Dê um nome para a equipe.');
+    const pilots = (team && team.pilots) || [];
+    if (pilots.length < 1) errors.push('A equipe precisa de pelo menos 1 piloto.');
+    if (pilots.length > MAX_PILOTS) errors.push(`No máximo ${MAX_PILOTS} pilotos por equipe.`);
+    pilots.forEach((p, i) => {
+      if (!String(p.name || '').trim()) errors.push(`Falta o nome do piloto ${i + 1}.`);
+      const lap = num(p.lapSec, NaN);
+      if (!Number.isFinite(lap) || lap < 10 || lap > 600) errors.push(`Volta média do piloto ${i + 1} precisa estar entre 10 e 600 s.`);
+    });
+    return errors;
+  }
+
+  /**
+   * Usa a equipe na configuração. A escala vem, nesta ordem: da própria
+   * equipe (se feita para a mesma quantidade de pilotos), da configuração
+   * atual (mesma quantidade) ou do rodízio com stints iguais.
+   */
+  function applyTeam(rawCfg, team) {
+    const cfg = normalizeConfig(rawCfg);
+    const count = team.pilots.length;
+    const own = team.plan && team.plan.pilotCount === count ? team.plan : null;
+    const keep = own || (cfg.pilots.length === count ? cfg : null);
+    return normalizeConfig({
+      ...cfg,
+      teamName: team.name,
+      workshopName: team.workshop,
+      pilots: team.pilots.map((p) => ({ name: String(p.name).trim(), lapSec: num(p.lapSec, NEW_PILOT_LAP) })),
+      order: keep ? keep.order : undefined,
+      stintMode: keep ? keep.stintMode : 'equal',
+      customStintMin: keep ? keep.customStintMin : [],
+    });
+  }
+
   /** Tempo de pista acumulado por piloto, incluindo o stint em andamento. */
   function driveTimes(cfg, race, elapsed) {
     const totals = {};
@@ -1620,6 +1748,12 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
 
   return {
     DEFAULT_CONFIG,
+    MAX_PILOTS,
+    NEW_PILOT_LAP,
+    teamFromConfig,
+    planOf,
+    validateTeam,
+    applyTeam,
     normalizeConfig,
     perStopLoss,
     raceSec,
@@ -1648,9 +1782,10 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
 
   const KS = window.KartStrategy;
   const STORAGE_KEY = 'ajm-kart-v1';
-  const TABS = ['plano', 'vivo', 'analise', 'manual'];
-  const PILOT_VARS = ['--p1', '--p2'];
-  const PILOT_ON = ['#ffffff', '#111517'];
+  const TABS = ['equipes', 'plano', 'vivo', 'analise', 'manual'];
+  // Uma cor por posição do piloto no cadastro (até 6) e a cor do texto sobre ela.
+  const PILOT_VARS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
+  const PILOT_ON = ['#ffffff', '#111517', '#111517', '#111517', '#111517', '#ffffff'];
 
   const $ = (id) => document.getElementById(id);
 
@@ -1709,7 +1844,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     const d = KS.DEFAULT_CONFIG;
     const untouched = c.pilots.every((p) => Math.abs(p.lapSec - 48.2) < 1e-9);
     if (!untouched) return c;
-    const next = { ...c, pilots: c.pilots.map((p, i) => ({ ...p, lapSec: d.pilots[i].lapSec })) };
+    const next = { ...c, pilots: c.pilots.map((p, i) => ({ ...p, lapSec: d.pilots[i] ? d.pilots[i].lapSec : p.lapSec })) };
     if (c.stintMode === 'equal' && c.stops === d.stops && c.raceMin === d.raceMin) {
       next.stintMode = d.stintMode;
       next.customStintMin = d.customStintMin.slice();
@@ -1718,11 +1853,18 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   }
   let race = Object.assign(newRace(), saved.race || {});
   const ui = Object.assign({ tab: 'plano', sound: true }, saved.ui || {});
+
+  // Equipes cadastradas. A primeira vem da configuração atual.
+  let teams = Array.isArray(saved.teams) && saved.teams.length ? saved.teams : [KS.teamFromConfig(cfg, 't1')];
+  let activeTeamId = teams.some((t) => t.id === saved.activeTeamId) ? saved.activeTeamId : teams[0].id;
+
   let plan = KS.buildPlan(cfg);
   let planNotes = [];
 
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ cfg, cfgVersion: CFG_VERSION, race, ui })); } catch (e) { /* sem armazenamento */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cfg, cfgVersion: CFG_VERSION, race, ui, teams, activeTeamId }));
+    } catch (e) { /* sem armazenamento */ }
   }
 
   function pilotIndex(id) { return Math.max(0, cfg.pilots.findIndex((p) => p.id === id)); }
@@ -1812,6 +1954,10 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     const b = e.target.closest('[data-tab]');
     if (b) setTab(b.dataset.tab);
   });
+  window.addEventListener('hashchange', () => {
+    const h = (location.hash || '').replace('#', '');
+    if (TABS.includes(h) && h !== ui.tab) setTab(h);
+  });
   document.querySelector('.tabs').addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     const i = TABS.indexOf(ui.tab) + (e.key === 'ArrowRight' ? 1 : -1);
@@ -1821,7 +1967,8 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   });
 
   function renderTab() {
-    if (ui.tab === 'plano') renderPlan();
+    if (ui.tab === 'equipes') renderTeams();
+    else if (ui.tab === 'plano') renderPlan();
     else if (ui.tab === 'vivo') renderLive(true);
     else if (ui.tab === 'analise') renderAnalysis();
     else renderManual();
@@ -1889,7 +2036,8 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   }
 
   armed($('btnResetCfg'), () => {
-    cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+    // Volta as regras e o plano ao padrão, mantendo a equipe em uso.
+    cfg = KS.applyTeam(KS.DEFAULT_CONFIG, activeTeam());
     planNotes = [];
     fillForm();
     updatePlan();
@@ -1928,15 +2076,15 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     $('brandTeam').textContent = cfg.teamName;
     const h = cfg.raceMin / 60;
     const dur = Number.isInteger(h) ? `${h} h` : `${cfg.raceMin} min`;
-    $('brandSub').textContent = `Endurance de kart · ${dur} · ${cfg.stops} ${cfg.stops === 1 ? 'parada' : 'paradas'}`;
+    $('brandSub').textContent = [cfg.workshopName, `Endurance de kart · ${dur} · ${cfg.stops} ${cfg.stops === 1 ? 'parada' : 'paradas'}`]
+      .filter(Boolean).join(' · ');
     document.title = `Box ${cfg.teamName}`;
   }
 
   function renderPlan() {
     const active = document.activeElement && document.activeElement.id;
-    const p1 = cfg.pilots[0];
-    const p2 = cfg.pilots[1];
-    $('planLede').textContent = `${p1.name} e ${p2.name} · ${fmtClock(plan.raceSec)} de prova · ${cfg.stops} paradas de ${fmtClock(cfg.minPitSec)} no box · volta média ${fmtLap(p1.lapSec)} s / ${fmtLap(p2.lapSec)} s.`;
+    $('planLede').textContent = `${joinNames(cfg.pilots.map((p) => p.name))} · ${fmtClock(plan.raceSec)} de prova · ${cfg.stops} paradas de ${fmtClock(cfg.minPitSec)} no box · volta média ${cfg.pilots.map((p) => `${fmtLap(p.lapSec)} s`).join(' / ')}.`;
+    renderTeamSummary();
 
     // KPIs
     const n = plan.stints.length;
@@ -2396,11 +2544,10 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   }
   function defaultNextPilot() {
     const k = race.pits.length + 1;
-    let id = cfg.order[Math.min(k, cfg.order.length - 1)];
-    if (race.stintPilots[0] && race.stintPilots[0] !== cfg.order[0]) {
-      id = id === cfg.pilots[0].id ? cfg.pilots[1].id : cfg.pilots[0].id;
-    }
-    return id;
+    if (!race.stintPilots[0] || race.stintPilots[0] === cfg.order[0]) return cfg.order[Math.min(k, cfg.order.length - 1)];
+    // Largou alguém fora do plano: segue o rodízio do cadastro.
+    const ids = cfg.pilots.map((p) => p.id);
+    return ids[(ids.indexOf(currentPilotId()) + 1) % ids.length];
   }
 
   function fillPilotSelect(sel, selectedId) {
@@ -3044,10 +3191,9 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     sim.example = true;
     sim.startedAt = Date.now();
     sim.stintPilots = [cfg.order[0]];
-    const profile = {
-      [cfg.pilots[0].id]: { mean: cfg.pilots[0].lapSec - 0.05, sd: 0.22 },
-      [cfg.pilots[1].id]: { mean: cfg.pilots[1].lapSec + 0.12, sd: 0.3 },
-    };
+    const profile = Object.fromEntries(cfg.pilots.map((p, i) => [
+      p.id, { mean: p.lapSec + (i === 0 ? -0.05 : 0.12), sd: i === 0 ? 0.22 : 0.3 },
+    ]));
     const stopAt = plan.stops.map((s) => s.inSec);
     // Amarela durante a janela da 2ª parada: a equipe aproveita e para antes.
     let yellow = null;
@@ -3106,7 +3252,8 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   // ======================= MANUAL =======================
   function renderManual() {
     const n = plan.stints.length;
-    const lap = (cfg.pilots[0].lapSec + cfg.pilots[1].lapSec) / 2;
+    const lap = cfg.pilots.reduce((a, p) => a + p.lapSec, 0) / cfg.pilots.length;
+    const P = cfg.pilots.length;
     const h = cfg.raceMin / 60;
     const values = {
       team: cfg.teamName,
@@ -3120,14 +3267,13 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       lap: fmtLap(lap),
       stint: fmtClock(plan.driveSec / n),
       stintlaps: String(Math.round(plan.totalLaps / n)),
-      stintsper: fmtNum(n / cfg.pilots.length, n % cfg.pilots.length ? 1 : 0),
+      rotation: P === 1 ? `1 piloto faz os ${n} stints.` : `${P} pilotos se revezam em ${n} stints.`,
+      manualTitle: P === 1 ? 'Estratégia do piloto' : `Estratégia dos ${P} pilotos`,
       pace01: fmtNum(plan.totalLaps * 0.1, 0),
       pace03: fmtNum(plan.totalLaps * 0.3, 0),
       slacklap: fmtNum(cfg.stops ? lap / cfg.stops : lap, 0),
       ylap: fmtNum(cfg.yellowLapSec, 0),
       ygain: fmtNum(Math.max(0, cfg.yellowLapSec - lap), 0),
-      p1: cfg.pilots[0].name,
-      p2: cfg.pilots[1].name,
       ymin: fmtNum(cfg.yellowMinStintMin, 0),
     };
     for (const el of document.querySelectorAll('[data-m]')) {
@@ -3270,6 +3416,239 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
           : 'Pronto para usar sem internet. Instale na tela inicial para abrir pelo ícone.');
       })
       .catch(() => setStatus('unsupported', keepOpen));
+  }
+
+  // ======================= EQUIPES =======================
+  function joinNames(names) {
+    if (names.length <= 1) return names.join('');
+    return `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
+  }
+
+  function activeTeam() { return teams.find((t) => t.id === activeTeamId) || teams[0]; }
+
+  function useTeam(id) {
+    const team = teams.find((t) => t.id === id);
+    if (!team) return;
+    // Guarda a escala da equipe que sai, para voltar igual depois.
+    teams = teams.map((t) => (t.id === activeTeamId ? { ...t, plan: KS.planOf(cfg) } : t));
+    activeTeamId = id;
+    cfg = KS.applyTeam(cfg, team);
+    planNotes = [];
+    fillForm();
+    updatePlan();
+  }
+
+  // Plano: seletor da equipe em uso e resumo dos pilotos.
+  $('teamSelect').addEventListener('change', (e) => useTeam(e.target.value));
+  $('btnEditTeams').addEventListener('click', () => {
+    editor.open(activeTeamId);
+    setTab('equipes');
+  });
+
+  function renderTeamSummary() {
+    const sel = $('teamSelect');
+    sel.replaceChildren(...teams.map((t) => {
+      const o = document.createElement('option');
+      o.value = t.id;
+      o.textContent = t.workshop ? `${t.name} (${t.workshop})` : t.name;
+      return o;
+    }));
+    sel.value = activeTeamId;
+    const ul = $('teamSummary');
+    ul.replaceChildren(...cfg.pilots.map((p, i) => {
+      const li = document.createElement('li');
+      const dot = document.createElement('i');
+      dot.className = 'dot';
+      dot.style.background = `var(${PILOT_VARS[i]})`;
+      const name = document.createElement('span');
+      name.textContent = p.name;
+      const lap = document.createElement('b');
+      lap.textContent = `${fmtLap(p.lapSec)} s`;
+      li.append(dot, name, lap);
+      return li;
+    }));
+  }
+
+  // Aba Equipes: lista e formulário de edição.
+  const editor = (() => {
+    let editingId = null; // id da equipe ou 'new'
+    const countSel = $('te-count');
+    countSel.replaceChildren(...Array.from({ length: KS.MAX_PILOTS }, (_, i) => {
+      const o = document.createElement('option');
+      o.value = String(i + 1);
+      o.textContent = i === 0 ? '1 piloto' : `${i + 1} pilotos`;
+      return o;
+    }));
+
+    function readPilots() {
+      return [...$('te-pilots').querySelectorAll('.te-pilot')].map((row) => ({
+        name: row.querySelector('[data-f="name"]').value,
+        lapSec: row.querySelector('[data-f="lap"]').value,
+      }));
+    }
+
+    function renderPilotRows(pilots) {
+      const wrap = $('te-pilots');
+      wrap.replaceChildren(...pilots.map((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'te-pilot';
+        const dot = document.createElement('i');
+        dot.className = 'dot';
+        dot.style.background = `var(${PILOT_VARS[i]})`;
+        const name = document.createElement('label');
+        name.className = 'field';
+        const ns = document.createElement('span');
+        ns.append(dot, document.createTextNode(`Piloto ${i + 1}`));
+        const ni = document.createElement('input');
+        ni.type = 'text';
+        ni.maxLength = 40;
+        ni.id = `te-p${i}-name`;
+        ni.dataset.f = 'name';
+        ni.value = p.name || '';
+        name.append(ns, ni);
+        const lap = document.createElement('label');
+        lap.className = 'field';
+        const ls = document.createElement('span');
+        ls.textContent = 'Volta média (s)';
+        const li = document.createElement('input');
+        li.type = 'number';
+        li.step = '0.01';
+        li.min = '10';
+        li.inputMode = 'decimal';
+        li.id = `te-p${i}-lap`;
+        li.dataset.f = 'lap';
+        li.value = p.lapSec != null ? String(p.lapSec) : '';
+        lap.append(ls, li);
+        row.append(name, lap);
+        return row;
+      }));
+    }
+
+    function setErrors(list) {
+      $('te-errors').replaceChildren(...list.map((text) => alertEl({ level: 'critical', text })));
+    }
+
+    function open(id) {
+      editingId = id;
+      const team = id === 'new'
+        ? { name: '', workshop: '', pilots: [{ name: '', lapSec: KS.NEW_PILOT_LAP }, { name: '', lapSec: KS.NEW_PILOT_LAP }] }
+        : teams.find((t) => t.id === id);
+      if (!team) return;
+      $('teamEditorTitle').textContent = id === 'new' ? 'Nova equipe' : 'Editar equipe';
+      $('te-name').value = team.name;
+      $('te-workshop').value = team.workshop || '';
+      countSel.value = String(team.pilots.length);
+      renderPilotRows(team.pilots);
+      $('te-delete').hidden = id === 'new';
+      setErrors([]);
+      $('te-status').textContent = '';
+    }
+
+    countSel.addEventListener('change', () => {
+      const want = Number(countSel.value);
+      const pilots = readPilots().slice(0, want);
+      while (pilots.length < want) pilots.push({ name: '', lapSec: KS.NEW_PILOT_LAP });
+      renderPilotRows(pilots);
+    });
+
+    $('teamEditor').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const draft = {
+        name: $('te-name').value.trim(),
+        workshop: $('te-workshop').value.trim(),
+        pilots: readPilots().map((p) => ({ name: p.name.trim(), lapSec: parseFloat(String(p.lapSec).replace(',', '.')) })),
+      };
+      const errors = KS.validateTeam(draft);
+      setErrors(errors);
+      if (errors.length) return;
+      if (editingId === 'new') {
+        const team = { id: `t${Date.now().toString(36)}`, ...draft };
+        teams.push(team);
+        editingId = team.id;
+        $('teamEditorTitle').textContent = 'Editar equipe';
+        $('te-delete').hidden = false;
+      } else {
+        teams = teams.map((t) => (t.id === editingId ? { ...t, ...draft } : t));
+      }
+      if (editingId === activeTeamId) useTeam(activeTeamId);
+      else save();
+      $('te-status').textContent = editingId === activeTeamId
+        ? 'Equipe salva. O plano já foi refeito com os dados novos.'
+        : 'Equipe salva. Toque em Usar na lista para correr com ela.';
+      renderTeamList();
+    });
+
+    $('te-cancel').addEventListener('click', () => open(editingId === 'new' ? activeTeamId : editingId));
+
+    armed($('te-delete'), () => {
+      if (teams.length === 1) {
+        setErrors(['Precisa ter pelo menos uma equipe cadastrada. Crie outra antes de excluir esta.']);
+        return;
+      }
+      const removed = editingId;
+      teams = teams.filter((t) => t.id !== removed);
+      if (removed === activeTeamId) useTeam(teams[0].id);
+      else save();
+      open(activeTeamId);
+      $('te-status').textContent = 'Equipe excluída.';
+      renderTeamList();
+    });
+
+    $('btnNewTeam').addEventListener('click', () => {
+      open('new');
+      $('te-name').focus();
+    });
+
+    return { open, current: () => editingId };
+  })();
+
+  function renderTeamList() {
+    const wrap = $('teamList');
+    const mk = (tag, cls, text) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    };
+    wrap.replaceChildren(...teams.map((t) => {
+      const card = mk('section', 'card team-card');
+      card.dataset.active = String(t.id === activeTeamId);
+      card.dataset.editing = String(t.id === editor.current());
+      const head = mk('div', 'team-card-head');
+      const title = mk('div');
+      title.append(mk('h3', null, t.name));
+      if (t.workshop) title.append(mk('span', 'team-workshop', `Oficina ${t.workshop}`));
+      head.append(title);
+      if (t.id === activeTeamId) head.append(mk('span', 'in-use-chip', 'Em uso'));
+      card.append(head);
+      const ul = mk('ul', 'team-summary');
+      t.pilots.forEach((p, i) => {
+        const li = mk('li');
+        const dot = mk('i', 'dot');
+        dot.style.background = `var(${PILOT_VARS[i]})`;
+        li.append(dot, mk('span', null, p.name), mk('b', null, `${fmtLap(Number(p.lapSec))} s`));
+        ul.append(li);
+      });
+      card.append(ul);
+      const row = mk('div', 'btn-row');
+      if (t.id !== activeTeamId) {
+        const use = mk('button', 'btn', 'Usar');
+        use.type = 'button';
+        use.addEventListener('click', () => { useTeam(t.id); renderTeamList(); });
+        row.append(use);
+      }
+      const edit = mk('button', 'btn btn-ghost', 'Editar');
+      edit.type = 'button';
+      edit.addEventListener('click', () => { editor.open(t.id); renderTeamList(); $('te-name').focus(); });
+      row.append(edit);
+      card.append(row);
+      return card;
+    }));
+  }
+
+  function renderTeams() {
+    if (!editor.current() || (editor.current() !== 'new' && !teams.some((t) => t.id === editor.current()))) editor.open(activeTeamId);
+    renderTeamList();
   }
 
   function boot() {

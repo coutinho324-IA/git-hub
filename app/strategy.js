@@ -13,8 +13,12 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  const MAX_PILOTS = 6;
+  const NEW_PILOT_LAP = 48.2;
+
   const DEFAULT_CONFIG = Object.freeze({
     teamName: 'Aristeu Just Motors',
+    workshopName: '',
     raceMin: 120,
     stops: 3,
     minPitSec: 300,
@@ -67,25 +71,30 @@
   function normalizeConfig(input) {
     const src = input || {};
     const cfg = {};
-    cfg.teamName = String(src.teamName || DEFAULT_CONFIG.teamName);
+    cfg.teamName = String(src.teamName || DEFAULT_CONFIG.teamName).trim() || DEFAULT_CONFIG.teamName;
+    cfg.workshopName = String(src.workshopName || '').trim();
     for (const key of NUMERIC_KEYS) cfg[key] = Math.max(0, num(src[key], DEFAULT_CONFIG[key]));
     cfg.stops = clamp(Math.round(cfg.stops), 0, 10);
     cfg.raceMin = Math.max(1, cfg.raceMin);
     cfg.yellowLapSec = Math.max(1, cfg.yellowLapSec);
 
-    const srcPilots = Array.isArray(src.pilots) ? src.pilots : DEFAULT_CONFIG.pilots;
-    cfg.pilots = DEFAULT_CONFIG.pilots.map((def, i) => {
-      const p = srcPilots[i] || {};
+    // De 1 a MAX_PILOTS pilotos; ids pela posição (p1, p2, ...).
+    const srcPilots = Array.isArray(src.pilots) && src.pilots.length
+      ? src.pilots.slice(0, MAX_PILOTS)
+      : DEFAULT_CONFIG.pilots;
+    cfg.pilots = srcPilots.map((p, i) => {
+      const fallbackName = `Piloto ${i + 1}`;
       return {
-        id: def.id,
-        name: String(p.name || def.name),
-        lapSec: Math.max(10, num(p.lapSec, def.lapSec)),
+        id: `p${i + 1}`,
+        name: String((p && p.name) || fallbackName).trim() || fallbackName,
+        lapSec: Math.max(10, num(p && p.lapSec, NEW_PILOT_LAP)),
       };
     });
 
     const ids = cfg.pilots.map((p) => p.id);
     const n = cfg.stops + 1;
-    const srcOrder = Array.isArray(src.order) ? src.order : DEFAULT_CONFIG.order;
+    // Sem ordem informada: os pilotos se revezam na ordem do cadastro.
+    const srcOrder = Array.isArray(src.order) ? src.order : [];
     cfg.order = [];
     for (let i = 0; i < n; i++) {
       const id = srcOrder[i];
@@ -572,8 +581,9 @@
   }
 
   /**
-   * Duas estratégias: cada piloto abrindo a prova. Cada piloto mantém o tempo
-   * de stint que tem no plano atual; o último stint fecha a conta.
+   * Uma estratégia por piloto abrindo a prova; os outros entram em rodízio na
+   * ordem do cadastro. Cada piloto mantém o tempo de stint que tem no plano
+   * atual; o último stint fecha a conta.
    */
   function starterScenarios(rawCfg) {
     const cfg = normalizeConfig(rawCfg);
@@ -587,9 +597,9 @@
       stintLen[p.id] = pick.length ? pick.reduce((a, st) => a + st.durSec, 0) / pick.length : base.driveSec / n;
     }
     const currentStarter = cfg.order[0];
+    const P = cfg.pilots.length;
     return cfg.pilots.map((starter, si) => {
-      const other = cfg.pilots[(si + 1) % cfg.pilots.length];
-      const order = Array.from({ length: n }, (_, i) => (i % 2 === 0 ? starter.id : other.id));
+      const order = Array.from({ length: n }, (_, i) => cfg.pilots[(si + i) % P].id);
       const scfg = normalizeConfig({
         ...cfg,
         order,
@@ -614,6 +624,67 @@
     });
   }
 
+  // ======================= EQUIPES =======================
+
+  /** Equipe cadastrada a partir da configuração (nome, oficina e pilotos). */
+  function teamFromConfig(rawCfg, id) {
+    const cfg = normalizeConfig(rawCfg);
+    return {
+      id: id || 't1',
+      name: cfg.teamName,
+      workshop: cfg.workshopName,
+      pilots: cfg.pilots.map((p) => ({ name: p.name, lapSec: p.lapSec })),
+      plan: planOf(cfg),
+    };
+  }
+
+  /** Escala da equipe (quem pilota cada stint e a duração), guardada junto da equipe. */
+  function planOf(rawCfg) {
+    const cfg = normalizeConfig(rawCfg);
+    return {
+      pilotCount: cfg.pilots.length,
+      order: cfg.order.slice(),
+      stintMode: cfg.stintMode,
+      customStintMin: cfg.customStintMin.slice(),
+    };
+  }
+
+  /** Problemas que impedem salvar a equipe (lista vazia = pode salvar). */
+  function validateTeam(team) {
+    const errors = [];
+    if (!team || !String(team.name || '').trim()) errors.push('Dê um nome para a equipe.');
+    const pilots = (team && team.pilots) || [];
+    if (pilots.length < 1) errors.push('A equipe precisa de pelo menos 1 piloto.');
+    if (pilots.length > MAX_PILOTS) errors.push(`No máximo ${MAX_PILOTS} pilotos por equipe.`);
+    pilots.forEach((p, i) => {
+      if (!String(p.name || '').trim()) errors.push(`Falta o nome do piloto ${i + 1}.`);
+      const lap = num(p.lapSec, NaN);
+      if (!Number.isFinite(lap) || lap < 10 || lap > 600) errors.push(`Volta média do piloto ${i + 1} precisa estar entre 10 e 600 s.`);
+    });
+    return errors;
+  }
+
+  /**
+   * Usa a equipe na configuração. A escala vem, nesta ordem: da própria
+   * equipe (se feita para a mesma quantidade de pilotos), da configuração
+   * atual (mesma quantidade) ou do rodízio com stints iguais.
+   */
+  function applyTeam(rawCfg, team) {
+    const cfg = normalizeConfig(rawCfg);
+    const count = team.pilots.length;
+    const own = team.plan && team.plan.pilotCount === count ? team.plan : null;
+    const keep = own || (cfg.pilots.length === count ? cfg : null);
+    return normalizeConfig({
+      ...cfg,
+      teamName: team.name,
+      workshopName: team.workshop,
+      pilots: team.pilots.map((p) => ({ name: String(p.name).trim(), lapSec: num(p.lapSec, NEW_PILOT_LAP) })),
+      order: keep ? keep.order : undefined,
+      stintMode: keep ? keep.stintMode : 'equal',
+      customStintMin: keep ? keep.customStintMin : [],
+    });
+  }
+
   /** Tempo de pista acumulado por piloto, incluindo o stint em andamento. */
   function driveTimes(cfg, race, elapsed) {
     const totals = {};
@@ -631,6 +702,12 @@
 
   return {
     DEFAULT_CONFIG,
+    MAX_PILOTS,
+    NEW_PILOT_LAP,
+    teamFromConfig,
+    planOf,
+    validateTeam,
+    applyTeam,
     normalizeConfig,
     perStopLoss,
     raceSec,

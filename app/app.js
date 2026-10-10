@@ -4,9 +4,10 @@
 
   const KS = window.KartStrategy;
   const STORAGE_KEY = 'ajm-kart-v1';
-  const TABS = ['plano', 'vivo', 'analise', 'manual'];
-  const PILOT_VARS = ['--p1', '--p2'];
-  const PILOT_ON = ['#ffffff', '#111517'];
+  const TABS = ['equipes', 'plano', 'vivo', 'analise', 'manual'];
+  // Uma cor por posição do piloto no cadastro (até 6) e a cor do texto sobre ela.
+  const PILOT_VARS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
+  const PILOT_ON = ['#ffffff', '#111517', '#111517', '#111517', '#111517', '#ffffff'];
 
   const $ = (id) => document.getElementById(id);
 
@@ -65,7 +66,7 @@
     const d = KS.DEFAULT_CONFIG;
     const untouched = c.pilots.every((p) => Math.abs(p.lapSec - 48.2) < 1e-9);
     if (!untouched) return c;
-    const next = { ...c, pilots: c.pilots.map((p, i) => ({ ...p, lapSec: d.pilots[i].lapSec })) };
+    const next = { ...c, pilots: c.pilots.map((p, i) => ({ ...p, lapSec: d.pilots[i] ? d.pilots[i].lapSec : p.lapSec })) };
     if (c.stintMode === 'equal' && c.stops === d.stops && c.raceMin === d.raceMin) {
       next.stintMode = d.stintMode;
       next.customStintMin = d.customStintMin.slice();
@@ -74,11 +75,18 @@
   }
   let race = Object.assign(newRace(), saved.race || {});
   const ui = Object.assign({ tab: 'plano', sound: true }, saved.ui || {});
+
+  // Equipes cadastradas. A primeira vem da configuração atual.
+  let teams = Array.isArray(saved.teams) && saved.teams.length ? saved.teams : [KS.teamFromConfig(cfg, 't1')];
+  let activeTeamId = teams.some((t) => t.id === saved.activeTeamId) ? saved.activeTeamId : teams[0].id;
+
   let plan = KS.buildPlan(cfg);
   let planNotes = [];
 
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ cfg, cfgVersion: CFG_VERSION, race, ui })); } catch (e) { /* sem armazenamento */ }
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cfg, cfgVersion: CFG_VERSION, race, ui, teams, activeTeamId }));
+    } catch (e) { /* sem armazenamento */ }
   }
 
   function pilotIndex(id) { return Math.max(0, cfg.pilots.findIndex((p) => p.id === id)); }
@@ -168,6 +176,10 @@
     const b = e.target.closest('[data-tab]');
     if (b) setTab(b.dataset.tab);
   });
+  window.addEventListener('hashchange', () => {
+    const h = (location.hash || '').replace('#', '');
+    if (TABS.includes(h) && h !== ui.tab) setTab(h);
+  });
   document.querySelector('.tabs').addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     const i = TABS.indexOf(ui.tab) + (e.key === 'ArrowRight' ? 1 : -1);
@@ -177,7 +189,8 @@
   });
 
   function renderTab() {
-    if (ui.tab === 'plano') renderPlan();
+    if (ui.tab === 'equipes') renderTeams();
+    else if (ui.tab === 'plano') renderPlan();
     else if (ui.tab === 'vivo') renderLive(true);
     else if (ui.tab === 'analise') renderAnalysis();
     else renderManual();
@@ -245,7 +258,8 @@
   }
 
   armed($('btnResetCfg'), () => {
-    cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+    // Volta as regras e o plano ao padrão, mantendo a equipe em uso.
+    cfg = KS.applyTeam(KS.DEFAULT_CONFIG, activeTeam());
     planNotes = [];
     fillForm();
     updatePlan();
@@ -284,15 +298,15 @@
     $('brandTeam').textContent = cfg.teamName;
     const h = cfg.raceMin / 60;
     const dur = Number.isInteger(h) ? `${h} h` : `${cfg.raceMin} min`;
-    $('brandSub').textContent = `Endurance de kart · ${dur} · ${cfg.stops} ${cfg.stops === 1 ? 'parada' : 'paradas'}`;
+    $('brandSub').textContent = [cfg.workshopName, `Endurance de kart · ${dur} · ${cfg.stops} ${cfg.stops === 1 ? 'parada' : 'paradas'}`]
+      .filter(Boolean).join(' · ');
     document.title = `Box ${cfg.teamName}`;
   }
 
   function renderPlan() {
     const active = document.activeElement && document.activeElement.id;
-    const p1 = cfg.pilots[0];
-    const p2 = cfg.pilots[1];
-    $('planLede').textContent = `${p1.name} e ${p2.name} · ${fmtClock(plan.raceSec)} de prova · ${cfg.stops} paradas de ${fmtClock(cfg.minPitSec)} no box · volta média ${fmtLap(p1.lapSec)} s / ${fmtLap(p2.lapSec)} s.`;
+    $('planLede').textContent = `${joinNames(cfg.pilots.map((p) => p.name))} · ${fmtClock(plan.raceSec)} de prova · ${cfg.stops} paradas de ${fmtClock(cfg.minPitSec)} no box · volta média ${cfg.pilots.map((p) => `${fmtLap(p.lapSec)} s`).join(' / ')}.`;
+    renderTeamSummary();
 
     // KPIs
     const n = plan.stints.length;
@@ -752,11 +766,10 @@
   }
   function defaultNextPilot() {
     const k = race.pits.length + 1;
-    let id = cfg.order[Math.min(k, cfg.order.length - 1)];
-    if (race.stintPilots[0] && race.stintPilots[0] !== cfg.order[0]) {
-      id = id === cfg.pilots[0].id ? cfg.pilots[1].id : cfg.pilots[0].id;
-    }
-    return id;
+    if (!race.stintPilots[0] || race.stintPilots[0] === cfg.order[0]) return cfg.order[Math.min(k, cfg.order.length - 1)];
+    // Largou alguém fora do plano: segue o rodízio do cadastro.
+    const ids = cfg.pilots.map((p) => p.id);
+    return ids[(ids.indexOf(currentPilotId()) + 1) % ids.length];
   }
 
   function fillPilotSelect(sel, selectedId) {
@@ -1400,10 +1413,9 @@
     sim.example = true;
     sim.startedAt = Date.now();
     sim.stintPilots = [cfg.order[0]];
-    const profile = {
-      [cfg.pilots[0].id]: { mean: cfg.pilots[0].lapSec - 0.05, sd: 0.22 },
-      [cfg.pilots[1].id]: { mean: cfg.pilots[1].lapSec + 0.12, sd: 0.3 },
-    };
+    const profile = Object.fromEntries(cfg.pilots.map((p, i) => [
+      p.id, { mean: p.lapSec + (i === 0 ? -0.05 : 0.12), sd: i === 0 ? 0.22 : 0.3 },
+    ]));
     const stopAt = plan.stops.map((s) => s.inSec);
     // Amarela durante a janela da 2ª parada: a equipe aproveita e para antes.
     let yellow = null;
@@ -1462,7 +1474,8 @@
   // ======================= MANUAL =======================
   function renderManual() {
     const n = plan.stints.length;
-    const lap = (cfg.pilots[0].lapSec + cfg.pilots[1].lapSec) / 2;
+    const lap = cfg.pilots.reduce((a, p) => a + p.lapSec, 0) / cfg.pilots.length;
+    const P = cfg.pilots.length;
     const h = cfg.raceMin / 60;
     const values = {
       team: cfg.teamName,
@@ -1476,14 +1489,13 @@
       lap: fmtLap(lap),
       stint: fmtClock(plan.driveSec / n),
       stintlaps: String(Math.round(plan.totalLaps / n)),
-      stintsper: fmtNum(n / cfg.pilots.length, n % cfg.pilots.length ? 1 : 0),
+      rotation: P === 1 ? `1 piloto faz os ${n} stints.` : `${P} pilotos se revezam em ${n} stints.`,
+      manualTitle: P === 1 ? 'Estratégia do piloto' : `Estratégia dos ${P} pilotos`,
       pace01: fmtNum(plan.totalLaps * 0.1, 0),
       pace03: fmtNum(plan.totalLaps * 0.3, 0),
       slacklap: fmtNum(cfg.stops ? lap / cfg.stops : lap, 0),
       ylap: fmtNum(cfg.yellowLapSec, 0),
       ygain: fmtNum(Math.max(0, cfg.yellowLapSec - lap), 0),
-      p1: cfg.pilots[0].name,
-      p2: cfg.pilots[1].name,
       ymin: fmtNum(cfg.yellowMinStintMin, 0),
     };
     for (const el of document.querySelectorAll('[data-m]')) {
@@ -1626,6 +1638,239 @@
           : 'Pronto para usar sem internet. Instale na tela inicial para abrir pelo ícone.');
       })
       .catch(() => setStatus('unsupported', keepOpen));
+  }
+
+  // ======================= EQUIPES =======================
+  function joinNames(names) {
+    if (names.length <= 1) return names.join('');
+    return `${names.slice(0, -1).join(', ')} e ${names[names.length - 1]}`;
+  }
+
+  function activeTeam() { return teams.find((t) => t.id === activeTeamId) || teams[0]; }
+
+  function useTeam(id) {
+    const team = teams.find((t) => t.id === id);
+    if (!team) return;
+    // Guarda a escala da equipe que sai, para voltar igual depois.
+    teams = teams.map((t) => (t.id === activeTeamId ? { ...t, plan: KS.planOf(cfg) } : t));
+    activeTeamId = id;
+    cfg = KS.applyTeam(cfg, team);
+    planNotes = [];
+    fillForm();
+    updatePlan();
+  }
+
+  // Plano: seletor da equipe em uso e resumo dos pilotos.
+  $('teamSelect').addEventListener('change', (e) => useTeam(e.target.value));
+  $('btnEditTeams').addEventListener('click', () => {
+    editor.open(activeTeamId);
+    setTab('equipes');
+  });
+
+  function renderTeamSummary() {
+    const sel = $('teamSelect');
+    sel.replaceChildren(...teams.map((t) => {
+      const o = document.createElement('option');
+      o.value = t.id;
+      o.textContent = t.workshop ? `${t.name} (${t.workshop})` : t.name;
+      return o;
+    }));
+    sel.value = activeTeamId;
+    const ul = $('teamSummary');
+    ul.replaceChildren(...cfg.pilots.map((p, i) => {
+      const li = document.createElement('li');
+      const dot = document.createElement('i');
+      dot.className = 'dot';
+      dot.style.background = `var(${PILOT_VARS[i]})`;
+      const name = document.createElement('span');
+      name.textContent = p.name;
+      const lap = document.createElement('b');
+      lap.textContent = `${fmtLap(p.lapSec)} s`;
+      li.append(dot, name, lap);
+      return li;
+    }));
+  }
+
+  // Aba Equipes: lista e formulário de edição.
+  const editor = (() => {
+    let editingId = null; // id da equipe ou 'new'
+    const countSel = $('te-count');
+    countSel.replaceChildren(...Array.from({ length: KS.MAX_PILOTS }, (_, i) => {
+      const o = document.createElement('option');
+      o.value = String(i + 1);
+      o.textContent = i === 0 ? '1 piloto' : `${i + 1} pilotos`;
+      return o;
+    }));
+
+    function readPilots() {
+      return [...$('te-pilots').querySelectorAll('.te-pilot')].map((row) => ({
+        name: row.querySelector('[data-f="name"]').value,
+        lapSec: row.querySelector('[data-f="lap"]').value,
+      }));
+    }
+
+    function renderPilotRows(pilots) {
+      const wrap = $('te-pilots');
+      wrap.replaceChildren(...pilots.map((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'te-pilot';
+        const dot = document.createElement('i');
+        dot.className = 'dot';
+        dot.style.background = `var(${PILOT_VARS[i]})`;
+        const name = document.createElement('label');
+        name.className = 'field';
+        const ns = document.createElement('span');
+        ns.append(dot, document.createTextNode(`Piloto ${i + 1}`));
+        const ni = document.createElement('input');
+        ni.type = 'text';
+        ni.maxLength = 40;
+        ni.id = `te-p${i}-name`;
+        ni.dataset.f = 'name';
+        ni.value = p.name || '';
+        name.append(ns, ni);
+        const lap = document.createElement('label');
+        lap.className = 'field';
+        const ls = document.createElement('span');
+        ls.textContent = 'Volta média (s)';
+        const li = document.createElement('input');
+        li.type = 'number';
+        li.step = '0.01';
+        li.min = '10';
+        li.inputMode = 'decimal';
+        li.id = `te-p${i}-lap`;
+        li.dataset.f = 'lap';
+        li.value = p.lapSec != null ? String(p.lapSec) : '';
+        lap.append(ls, li);
+        row.append(name, lap);
+        return row;
+      }));
+    }
+
+    function setErrors(list) {
+      $('te-errors').replaceChildren(...list.map((text) => alertEl({ level: 'critical', text })));
+    }
+
+    function open(id) {
+      editingId = id;
+      const team = id === 'new'
+        ? { name: '', workshop: '', pilots: [{ name: '', lapSec: KS.NEW_PILOT_LAP }, { name: '', lapSec: KS.NEW_PILOT_LAP }] }
+        : teams.find((t) => t.id === id);
+      if (!team) return;
+      $('teamEditorTitle').textContent = id === 'new' ? 'Nova equipe' : 'Editar equipe';
+      $('te-name').value = team.name;
+      $('te-workshop').value = team.workshop || '';
+      countSel.value = String(team.pilots.length);
+      renderPilotRows(team.pilots);
+      $('te-delete').hidden = id === 'new';
+      setErrors([]);
+      $('te-status').textContent = '';
+    }
+
+    countSel.addEventListener('change', () => {
+      const want = Number(countSel.value);
+      const pilots = readPilots().slice(0, want);
+      while (pilots.length < want) pilots.push({ name: '', lapSec: KS.NEW_PILOT_LAP });
+      renderPilotRows(pilots);
+    });
+
+    $('teamEditor').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const draft = {
+        name: $('te-name').value.trim(),
+        workshop: $('te-workshop').value.trim(),
+        pilots: readPilots().map((p) => ({ name: p.name.trim(), lapSec: parseFloat(String(p.lapSec).replace(',', '.')) })),
+      };
+      const errors = KS.validateTeam(draft);
+      setErrors(errors);
+      if (errors.length) return;
+      if (editingId === 'new') {
+        const team = { id: `t${Date.now().toString(36)}`, ...draft };
+        teams.push(team);
+        editingId = team.id;
+        $('teamEditorTitle').textContent = 'Editar equipe';
+        $('te-delete').hidden = false;
+      } else {
+        teams = teams.map((t) => (t.id === editingId ? { ...t, ...draft } : t));
+      }
+      if (editingId === activeTeamId) useTeam(activeTeamId);
+      else save();
+      $('te-status').textContent = editingId === activeTeamId
+        ? 'Equipe salva. O plano já foi refeito com os dados novos.'
+        : 'Equipe salva. Toque em Usar na lista para correr com ela.';
+      renderTeamList();
+    });
+
+    $('te-cancel').addEventListener('click', () => open(editingId === 'new' ? activeTeamId : editingId));
+
+    armed($('te-delete'), () => {
+      if (teams.length === 1) {
+        setErrors(['Precisa ter pelo menos uma equipe cadastrada. Crie outra antes de excluir esta.']);
+        return;
+      }
+      const removed = editingId;
+      teams = teams.filter((t) => t.id !== removed);
+      if (removed === activeTeamId) useTeam(teams[0].id);
+      else save();
+      open(activeTeamId);
+      $('te-status').textContent = 'Equipe excluída.';
+      renderTeamList();
+    });
+
+    $('btnNewTeam').addEventListener('click', () => {
+      open('new');
+      $('te-name').focus();
+    });
+
+    return { open, current: () => editingId };
+  })();
+
+  function renderTeamList() {
+    const wrap = $('teamList');
+    const mk = (tag, cls, text) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    };
+    wrap.replaceChildren(...teams.map((t) => {
+      const card = mk('section', 'card team-card');
+      card.dataset.active = String(t.id === activeTeamId);
+      card.dataset.editing = String(t.id === editor.current());
+      const head = mk('div', 'team-card-head');
+      const title = mk('div');
+      title.append(mk('h3', null, t.name));
+      if (t.workshop) title.append(mk('span', 'team-workshop', `Oficina ${t.workshop}`));
+      head.append(title);
+      if (t.id === activeTeamId) head.append(mk('span', 'in-use-chip', 'Em uso'));
+      card.append(head);
+      const ul = mk('ul', 'team-summary');
+      t.pilots.forEach((p, i) => {
+        const li = mk('li');
+        const dot = mk('i', 'dot');
+        dot.style.background = `var(${PILOT_VARS[i]})`;
+        li.append(dot, mk('span', null, p.name), mk('b', null, `${fmtLap(Number(p.lapSec))} s`));
+        ul.append(li);
+      });
+      card.append(ul);
+      const row = mk('div', 'btn-row');
+      if (t.id !== activeTeamId) {
+        const use = mk('button', 'btn', 'Usar');
+        use.type = 'button';
+        use.addEventListener('click', () => { useTeam(t.id); renderTeamList(); });
+        row.append(use);
+      }
+      const edit = mk('button', 'btn btn-ghost', 'Editar');
+      edit.type = 'button';
+      edit.addEventListener('click', () => { editor.open(t.id); renderTeamList(); $('te-name').focus(); });
+      row.append(edit);
+      card.append(row);
+      return card;
+    }));
+  }
+
+  function renderTeams() {
+    if (!editor.current() || (editor.current() !== 'new' && !teams.some((t) => t.id === editor.current()))) editor.open(activeTeamId);
+    renderTeamList();
   }
 
   function boot() {

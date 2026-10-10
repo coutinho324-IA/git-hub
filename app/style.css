@@ -18,6 +18,10 @@
   --board-hi: #ffd23f;
   --p1: #2a78d6;
   --p2: #eb6834;
+  --p3: #1baf7a;
+  --p4: #eda100;
+  --p5: #e87ba4;
+  --p6: #008300;
   --pit: #9aa1a4;
   --good: #0ca30c;
   --good-ink: #006300;
@@ -59,6 +63,10 @@
     --board-hi: #ffd23f;
     --p1: #3987e5;
     --p2: #d95926;
+    --p3: #199e70;
+    --p4: #c98500;
+    --p5: #d55181;
+    --p6: #008300;
     --pit: #6c7477;
     --good-ink: #2fc42f;
     --warn-ink: #fab219;
@@ -85,6 +93,10 @@
   --board-hi: #ffd23f;
   --p1: #3987e5;
   --p2: #d95926;
+  --p3: #199e70;
+  --p4: #c98500;
+  --p5: #d55181;
+  --p6: #008300;
   --pit: #6c7477;
   --good-ink: #2fc42f;
   --warn-ink: #fab219;
@@ -213,6 +225,24 @@ main.wrap { padding-block: 24px 64px; }
 .svg-axis { stroke: var(--line); stroke-width: 1; }
 .seg { cursor: default; }
 .seg:hover, .seg:focus { filter: brightness(1.12); outline: none; }
+
+/* ---------- Equipes ---------- */
+.teams-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: var(--gap); align-items: start; }
+@media (max-width: 900px) { .teams-layout { grid-template-columns: minmax(0, 1fr); } }
+.team-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.team-list { display: flex; flex-direction: column; gap: 12px; }
+.team-card[data-active="true"] { border-color: var(--accent); }
+.team-card[data-editing="true"] { box-shadow: 0 0 0 2px var(--accent-wash); }
+.team-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.team-card-head h3 { font-size: var(--step-2); text-transform: uppercase; }
+.team-workshop { display: block; font-size: var(--step--1); color: var(--ink-2); margin-top: 2px; }
+.team-summary { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.team-summary li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 0.9375rem; }
+.team-summary li .dot { margin: 0; }
+.team-summary li b { font-variant-numeric: tabular-nums; }
+.team-editor { gap: 12px; }
+.te-pilots { display: flex; flex-direction: column; gap: 10px; }
+.te-pilot { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 
 /* ---------- Meta e estratégias ---------- */
 .meta-ref { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
