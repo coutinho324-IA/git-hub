@@ -121,8 +121,11 @@
   --step-3: 2rem;
   --step-4: 2.75rem;
 
-  --radius: 6px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --gap: 16px;
+  --shadow: 0 1px 2px rgba(17, 21, 23, 0.05), 0 8px 24px rgba(17, 21, 23, 0.06);
+  --nav-h: 64px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -152,6 +155,7 @@
     --warn-ink: #fab219;
     --crit-ink: #ff7676;
     --grid: #232a2d;
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.02);
     color-scheme: dark;
   }
 }
@@ -182,6 +186,7 @@
   --warn-ink: #fab219;
   --crit-ink: #ff7676;
   --grid: #232a2d;
+  --shadow: 0 0 0 1px rgba(255, 255, 255, 0.02);
   color-scheme: dark;
 }
 
@@ -203,7 +208,10 @@ h3 { font-size: var(--step-1); font-weight: 700; }
 p { margin: 0; }
 button, input, select { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sr-only {
+  position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important;
+  border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
 
 .wrap { width: 100%; max-width: 1120px; margin-inline: auto; padding-inline: 16px; }
 main.wrap { padding-block: 24px 64px; }
@@ -596,6 +604,109 @@ table.data tr:has(+ tr.note-row) td { border-bottom: 0; }
 .pcard-note { font-style: italic; color: var(--ink-2); }
 .driver-note { display: block; margin-top: 4px; font-size: var(--step--1); color: var(--ink); background: var(--accent-wash); border-radius: 4px; padding: 2px 8px; }
 
+
+/* =================================================================
+   Visual 2: cartões mais limpos, painel de números estilo placa de box,
+   abas com ícones (embaixo no celular) e grupos de ajuste recolhíveis.
+   ================================================================= */
+main.wrap { padding-block: 28px 72px; }
+.panel { gap: 20px; }
+.panel-head h1 { display: flex; align-items: center; gap: 12px; font-size: clamp(1.75rem, 6vw, 2.5rem); }
+.panel-head h1::before {
+  content: ""; flex: none; width: 22px; height: 22px; border-radius: 4px;
+  background: conic-gradient(var(--ink) 25%, var(--surface) 0 50%, var(--ink) 0 75%, var(--surface) 0) 0 0 / 11px 11px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.lede { font-size: var(--step-0); line-height: 1.55; }
+
+.card { border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+.card-head h2, .card > h2 { font-size: var(--step-0); letter-spacing: 0.08em; color: var(--ink); }
+.hint { line-height: 1.45; }
+
+/* Botões e campos */
+.btn { border-radius: var(--radius-sm); min-height: 42px; padding: 9px 16px; transition: filter 0.15s, background 0.15s; }
+.btn:not(.btn-ghost) { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08), 0 4px 12px var(--accent-wash); }
+.field input, .field select, .manual-lap input, table select, table input {
+  border-radius: var(--radius-sm); background: var(--surface); min-height: 42px;
+}
+.field > span { font-size: var(--step--1); letter-spacing: 0.01em; }
+
+/* Abas com ícones */
+.tabs button { display: inline-flex; align-items: center; gap: 8px; }
+.tabs svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Painel de números: placa de box */
+.kpis {
+  background: var(--board); border: 1px solid var(--board-2); border-radius: var(--radius);
+  box-shadow: var(--shadow); gap: 0;
+}
+.kpi { background: transparent; padding: 16px 18px; border-left: 1px solid var(--board-2); }
+.kpi:first-child { border-left: 0; }
+.kpi .k-label { color: var(--board-muted); font-family: var(--f-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem; }
+.kpi .k-value { color: var(--board-fg); font-size: clamp(1.75rem, 6vw, 2.25rem); }
+.kpi:first-child .k-value { color: var(--board-hi); }
+.kpi .k-sub { color: var(--board-muted); }
+@media (max-width: 760px) {
+  .kpi:nth-child(3) { border-left: 0; }
+  .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--board-2); }
+}
+
+/* Linha do tempo em destaque */
+.tl-card { padding-bottom: 12px; }
+
+/* Placas e botões grandes */
+.board { border-radius: var(--radius); box-shadow: var(--shadow); }
+.btn-lap, .btn-pit { border-radius: var(--radius); box-shadow: var(--shadow); }
+.alert { border-radius: var(--radius-sm); }
+.win-bar { border-radius: 999px; }
+.pit-progress { border-radius: 999px; }
+
+/* Ajustes recolhíveis */
+.cfg { gap: 10px; padding: 14px; }
+.cfg-group { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.cfg-group > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+  font-family: var(--f-display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--step--1); color: var(--ink);
+}
+.cfg-group > summary::-webkit-details-marker { display: none; }
+.cfg-group > summary small { font-family: var(--f-body); font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.cfg-group > summary::after {
+  content: ""; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg) translateY(-2px); transition: transform 0.15s;
+}
+.cfg-group[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+.cfg-group > summary:hover { color: var(--accent); }
+.cfg-group > fieldset { padding: 0 14px 14px; }
+.cfg-group[open] { background: var(--surface); }
+
+/* Tabelas */
+table.data th { font-size: 0.75rem; }
+table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
+
+/* Equipes */
+.team-card { gap: 10px; }
+.team-card[data-active="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+.te-pilot { border-top-style: dashed; }
+
+/* Celular: abas embaixo, como app */
+@media (max-width: 760px) {
+  .tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; max-width: none;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: var(--board); border-top: 1px solid var(--board-2); box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
+  }
+  .tabs button {
+    flex-direction: column; justify-content: center; gap: 3px; padding: 6px 2px; min-height: 52px;
+    font-size: 0.6875rem; letter-spacing: 0.04em; border-bottom: 0; border-radius: var(--radius-sm);
+  }
+  .tabs svg { width: 22px; height: 22px; }
+  .tabs button[aria-selected="true"] { color: var(--board-hi); background: rgba(255, 255, 255, 0.07); }
+  main.wrap { padding-bottom: calc(var(--nav-h) + 40px + env(safe-area-inset-bottom, 0px)); }
+  .topbar-inner { padding-block: 8px; }
+  .card { padding: 16px; }
+}
+
 </style>
 </head>
 <body>
@@ -614,11 +725,11 @@ table.data tr:has(+ tr.note-row) td { border-bottom: 0; }
     </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Seções">
-    <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes">Equipes</button>
-    <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano">Plano</button>
-    <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo">Ao vivo</button>
-    <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise">Análise</button>
-    <button type="button" role="tab" id="t-manual" data-tab="manual" aria-controls="tab-manual">Manual</button>
+    <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 13.6c2.8.2 5 2.2 5 5"/></svg><span>Equipes</span></button>
+    <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4.5L18 13H5"/><path d="M9 4v9M13 4v9"/></svg><span>Plano</span></button>
+    <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M19 6.5l1.5-1.5"/></svg><span>Ao vivo</span></button>
+    <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M6 16l4-5 3 3 5-7"/></svg><span>Análise</span></button>
+    <button type="button" role="tab" id="t-manual" data-tab="manual" aria-controls="tab-manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Manual</span></button>
   </nav>
   <div class="checker" aria-hidden="true"></div>
 </header>
@@ -660,6 +771,14 @@ table.data tr:has(+ tr.note-row) td { border-bottom: 0; }
       <p class="lede" id="planLede">Ajuste os dados ao lado e o plano se refaz na hora.</p>
     </div>
 
+    <figure class="card tl-card">
+      <figcaption class="card-head">
+        <h2>Linha do tempo da prova</h2>
+        <div class="legend" id="tlLegend"></div>
+      </figcaption>
+      <div class="tl-scroll"><div id="timeline" class="timeline"></div></div>
+    </figure>
+
     <div class="kpis" id="kpis"></div>
 
     <section class="card meta-card" id="metaCard">
@@ -684,37 +803,41 @@ table.data tr:has(+ tr.note-row) td { border-bottom: 0; }
       <div class="scenarios" id="scenarios"></div>
     </section>
 
-    <figure class="card tl-card">
-      <figcaption class="card-head">
-        <h2>Linha do tempo da prova</h2>
-        <div class="legend" id="tlLegend"></div>
-      </figcaption>
-      <div class="tl-scroll"><div id="timeline" class="timeline"></div></div>
-    </figure>
 
     <div class="plan-grid">
       <form id="cfgForm" class="card cfg" autocomplete="off">
+        <details class="cfg-group" open>
+          <summary><span>Equipe</span></summary>
         <fieldset>
-          <legend>Equipe</legend>
+          <legend class="sr-only">Equipe</legend>
           <label class="field field-wide"><span>Equipe em uso</span><select id="teamSelect"></select></label>
           <ul class="team-summary field-wide" id="teamSummary"></ul>
           <button type="button" class="btn btn-ghost field-wide" id="btnEditTeams">Editar equipes e pilotos</button>
         </fieldset>
+        </details>
+        <details class="cfg-group" open>
+          <summary><span>Prova</span></summary>
         <fieldset>
-          <legend>Prova</legend>
+          <legend class="sr-only">Prova</legend>
           <label class="field"><span>Duração (min)</span><input id="f-raceMin" data-key="raceMin" type="number" inputmode="decimal" step="1" min="1"></label>
           <label class="field"><span>Paradas obrigatórias</span><input id="f-stops" data-key="stops" type="number" inputmode="numeric" step="1" min="0" max="10"></label>
           <label class="field"><span>Tempo mínimo no box (s)</span><input id="f-minPitSec" data-key="minPitSec" type="number" inputmode="decimal" step="1" min="0"></label>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Perdas em cada parada</span></summary>
         <fieldset>
-          <legend>Perdas em cada parada</legend>
+          <legend class="sr-only">Perdas em cada parada</legend>
           <label class="field"><span>Pit lane, entrada + saída (s)</span><input id="f-pitLaneLossSec" data-key="pitLaneLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Folga de segurança na saída (s)</span><input id="f-exitMarginSec" data-key="exitMarginSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Volta de saída, pneu frio (s)</span><input id="f-outLapLossSec" data-key="outLapLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <p class="hint field-wide">Meça no treino: cronometre do ponto de frenagem da entrada até a linha de saída e compare com uma volta normal. A folga de 3 s cobre o erro de quem aperta o cronômetro; sair antes do tempo mínimo dá punição.</p>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Regulamento e limites</span><small>0 = sem limite</small></summary>
         <fieldset>
-          <legend>Regulamento e limites <small>0 = sem limite</small></legend>
+          <legend class="sr-only">Regulamento e limites</legend>
           <label class="field"><span>Stint máximo (min)</span><input id="f-maxStintMin" data-key="maxStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <label class="field"><span>Stint mínimo (min)</span><input id="f-minStintMin" data-key="minStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <label class="field"><span>Mínimo por piloto (min)</span><input id="f-minDriveMin" data-key="minDriveMin" type="number" inputmode="decimal" step="1" min="0"></label>
@@ -722,12 +845,16 @@ table.data tr:has(+ tr.note-row) td { border-bottom: 0; }
           <label class="field"><span>Sem parada nos últimos (min)</span><input id="f-noPitLastMin" data-key="noPitLastMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <p class="hint field-wide">O stint máximo de 35 min é um limite físico sugerido. Troque pelos números do regulamento da prova.</p>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Estratégia</span></summary>
         <fieldset>
-          <legend>Estratégia</legend>
+          <legend class="sr-only">Estratégia</legend>
           <label class="field"><span>Janela ideal (± voltas)</span><input id="f-windowLaps" data-key="windowLaps" type="number" inputmode="numeric" step="1" min="0"></label>
           <label class="field"><span>Volta sob amarela/SC (s)</span><input id="f-yellowLapSec" data-key="yellowLapSec" type="number" inputmode="decimal" step="1" min="1"></label>
           <label class="field"><span>Amarela vale box após (min de stint)</span><input id="f-yellowMinStintMin" data-key="yellowMinStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
         </fieldset>
+        </details>
         <div class="form-foot">
           <button type="button" class="btn btn-ghost" id="btnResetCfg" data-confirm="Toque de novo para restaurar">Restaurar padrão</button>
         </div>

@@ -31,11 +31,11 @@
     </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Seções">
-    <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes">Equipes</button>
-    <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano">Plano</button>
-    <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo">Ao vivo</button>
-    <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise">Análise</button>
-    <button type="button" role="tab" id="t-manual" data-tab="manual" aria-controls="tab-manual">Manual</button>
+    <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 13.6c2.8.2 5 2.2 5 5"/></svg><span>Equipes</span></button>
+    <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4.5L18 13H5"/><path d="M9 4v9M13 4v9"/></svg><span>Plano</span></button>
+    <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M19 6.5l1.5-1.5"/></svg><span>Ao vivo</span></button>
+    <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M6 16l4-5 3 3 5-7"/></svg><span>Análise</span></button>
+    <button type="button" role="tab" id="t-manual" data-tab="manual" aria-controls="tab-manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Manual</span></button>
   </nav>
   <div class="checker" aria-hidden="true"></div>
 </header>
@@ -77,6 +77,14 @@
       <p class="lede" id="planLede">Ajuste os dados ao lado e o plano se refaz na hora.</p>
     </div>
 
+    <figure class="card tl-card">
+      <figcaption class="card-head">
+        <h2>Linha do tempo da prova</h2>
+        <div class="legend" id="tlLegend"></div>
+      </figcaption>
+      <div class="tl-scroll"><div id="timeline" class="timeline"></div></div>
+    </figure>
+
     <div class="kpis" id="kpis"></div>
 
     <section class="card meta-card" id="metaCard">
@@ -101,37 +109,41 @@
       <div class="scenarios" id="scenarios"></div>
     </section>
 
-    <figure class="card tl-card">
-      <figcaption class="card-head">
-        <h2>Linha do tempo da prova</h2>
-        <div class="legend" id="tlLegend"></div>
-      </figcaption>
-      <div class="tl-scroll"><div id="timeline" class="timeline"></div></div>
-    </figure>
 
     <div class="plan-grid">
       <form id="cfgForm" class="card cfg" autocomplete="off">
+        <details class="cfg-group" open>
+          <summary><span>Equipe</span></summary>
         <fieldset>
-          <legend>Equipe</legend>
+          <legend class="sr-only">Equipe</legend>
           <label class="field field-wide"><span>Equipe em uso</span><select id="teamSelect"></select></label>
           <ul class="team-summary field-wide" id="teamSummary"></ul>
           <button type="button" class="btn btn-ghost field-wide" id="btnEditTeams">Editar equipes e pilotos</button>
         </fieldset>
+        </details>
+        <details class="cfg-group" open>
+          <summary><span>Prova</span></summary>
         <fieldset>
-          <legend>Prova</legend>
+          <legend class="sr-only">Prova</legend>
           <label class="field"><span>Duração (min)</span><input id="f-raceMin" data-key="raceMin" type="number" inputmode="decimal" step="1" min="1"></label>
           <label class="field"><span>Paradas obrigatórias</span><input id="f-stops" data-key="stops" type="number" inputmode="numeric" step="1" min="0" max="10"></label>
           <label class="field"><span>Tempo mínimo no box (s)</span><input id="f-minPitSec" data-key="minPitSec" type="number" inputmode="decimal" step="1" min="0"></label>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Perdas em cada parada</span></summary>
         <fieldset>
-          <legend>Perdas em cada parada</legend>
+          <legend class="sr-only">Perdas em cada parada</legend>
           <label class="field"><span>Pit lane, entrada + saída (s)</span><input id="f-pitLaneLossSec" data-key="pitLaneLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Folga de segurança na saída (s)</span><input id="f-exitMarginSec" data-key="exitMarginSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Volta de saída, pneu frio (s)</span><input id="f-outLapLossSec" data-key="outLapLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <p class="hint field-wide">Meça no treino: cronometre do ponto de frenagem da entrada até a linha de saída e compare com uma volta normal. A folga de 3 s cobre o erro de quem aperta o cronômetro; sair antes do tempo mínimo dá punição.</p>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Regulamento e limites</span><small>0 = sem limite</small></summary>
         <fieldset>
-          <legend>Regulamento e limites <small>0 = sem limite</small></legend>
+          <legend class="sr-only">Regulamento e limites</legend>
           <label class="field"><span>Stint máximo (min)</span><input id="f-maxStintMin" data-key="maxStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <label class="field"><span>Stint mínimo (min)</span><input id="f-minStintMin" data-key="minStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <label class="field"><span>Mínimo por piloto (min)</span><input id="f-minDriveMin" data-key="minDriveMin" type="number" inputmode="decimal" step="1" min="0"></label>
@@ -139,12 +151,16 @@
           <label class="field"><span>Sem parada nos últimos (min)</span><input id="f-noPitLastMin" data-key="noPitLastMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <p class="hint field-wide">O stint máximo de 35 min é um limite físico sugerido. Troque pelos números do regulamento da prova.</p>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Estratégia</span></summary>
         <fieldset>
-          <legend>Estratégia</legend>
+          <legend class="sr-only">Estratégia</legend>
           <label class="field"><span>Janela ideal (± voltas)</span><input id="f-windowLaps" data-key="windowLaps" type="number" inputmode="numeric" step="1" min="0"></label>
           <label class="field"><span>Volta sob amarela/SC (s)</span><input id="f-yellowLapSec" data-key="yellowLapSec" type="number" inputmode="decimal" step="1" min="1"></label>
           <label class="field"><span>Amarela vale box após (min de stint)</span><input id="f-yellowMinStintMin" data-key="yellowMinStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
         </fieldset>
+        </details>
         <div class="form-foot">
           <button type="button" class="btn btn-ghost" id="btnResetCfg" data-confirm="Toque de novo para restaurar">Restaurar padrão</button>
         </div>
