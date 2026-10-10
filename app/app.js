@@ -300,6 +300,21 @@
     updatePlan();
   });
 
+  // Plano da equipe: 4 turnos de 26:15 revezando os pilotos na ordem do cadastro.
+  // Mantém as ações já escritas e preenche só as vazias.
+  $('btnDefaultPlan').addEventListener('click', () => {
+    const d = KS.DEFAULT_CONFIG;
+    cfg = KS.normalizeConfig({
+      ...cfg,
+      order: undefined,
+      stintMode: d.stintMode,
+      customStintMin: d.customStintMin.slice(),
+      stintNotes: cfg.stintNotes.map((note, i) => note || d.stintNotes[i] || ''),
+    });
+    planNotes = ['Plano de 4 turnos de 26:15 aplicado, revezando os pilotos na ordem do cadastro.'];
+    updatePlan();
+  });
+
   $('btnEqual').addEventListener('click', () => {
     cfg.stintMode = 'equal';
     planNotes = [];
@@ -607,6 +622,8 @@
   }
 
   function renderStintTable() {
+    // O plano de 26:15 só faz sentido na prova padrão (2 h, 3 paradas).
+    $('btnDefaultPlan').hidden = !(cfg.stops === KS.DEFAULT_CONFIG.stops && cfg.raceMin === KS.DEFAULT_CONFIG.raceMin);
     const tbl = $('stintTable');
     tbl.replaceChildren();
     const head = tbl.createTHead().insertRow();

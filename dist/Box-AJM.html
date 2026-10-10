@@ -883,8 +883,9 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
           <div class="card-head">
             <h2>Stints</h2>
             <div class="btn-row">
+              <button type="button" class="btn" id="btnDefaultPlan">Turnos de 26:15</button>
               <button type="button" class="btn btn-ghost" id="btnEqual">Igualar stints</button>
-              <button type="button" class="btn" id="btnOptimize">Otimizar pelo ritmo</button>
+              <button type="button" class="btn btn-ghost" id="btnOptimize">Otimizar pelo ritmo</button>
             </div>
           </div>
           <div class="table-wrap"><table class="data" id="stintTable"></table></div>
@@ -2269,6 +2270,21 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
     updatePlan();
   });
 
+  // Plano da equipe: 4 turnos de 26:15 revezando os pilotos na ordem do cadastro.
+  // Mantém as ações já escritas e preenche só as vazias.
+  $('btnDefaultPlan').addEventListener('click', () => {
+    const d = KS.DEFAULT_CONFIG;
+    cfg = KS.normalizeConfig({
+      ...cfg,
+      order: undefined,
+      stintMode: d.stintMode,
+      customStintMin: d.customStintMin.slice(),
+      stintNotes: cfg.stintNotes.map((note, i) => note || d.stintNotes[i] || ''),
+    });
+    planNotes = ['Plano de 4 turnos de 26:15 aplicado, revezando os pilotos na ordem do cadastro.'];
+    updatePlan();
+  });
+
   $('btnEqual').addEventListener('click', () => {
     cfg.stintMode = 'equal';
     planNotes = [];
@@ -2576,6 +2592,8 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
   }
 
   function renderStintTable() {
+    // O plano de 26:15 só faz sentido na prova padrão (2 h, 3 paradas).
+    $('btnDefaultPlan').hidden = !(cfg.stops === KS.DEFAULT_CONFIG.stops && cfg.raceMin === KS.DEFAULT_CONFIG.raceMin);
     const tbl = $('stintTable');
     tbl.replaceChildren();
     const head = tbl.createTHead().insertRow();
