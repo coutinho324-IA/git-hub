@@ -704,7 +704,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
           <label class="field"><span>Pit lane, entrada + saída (s)</span><input id="f-pitLaneLossSec" data-key="pitLaneLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Folga de segurança na saída (s)</span><input id="f-exitMarginSec" data-key="exitMarginSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Volta de saída, pneu frio (s)</span><input id="f-outLapLossSec" data-key="outLapLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
-          <p class="hint field-wide">Meça no treino: cronometre do ponto de frenagem da entrada até a linha de saída e compare com uma volta normal.</p>
+          <p class="hint field-wide">Meça no treino: cronometre do ponto de frenagem da entrada até a linha de saída e compare com uma volta normal. A folga de 3 s cobre o erro de quem aperta o cronômetro; sair antes do tempo mínimo dá punição.</p>
         </fieldset>
         <fieldset>
           <legend>Regulamento e limites <small>0 = sem limite</small></legend>
@@ -851,7 +851,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
               <li data-from="0" data-to="60"><b>0:00–1:00</b> Celular passa para quem saiu do kart. Troca de piloto, lastro e banco.</li>
               <li data-from="60" data-to="180"><b>1:00–3:00</b> Quem saiu conta como está o kart. Quem entra repete o plano do stint. Água.</li>
               <li data-from="180" data-to="240"><b>3:00–4:00</b> Piloto sentado, cinto, luvas, viseira limpa.</li>
-              <li data-from="240" data-to="9999"><b>4:00–5:00</b> Kart pronto. Quem está com o celular conta os 10 s finais em voz alta.</li>
+              <li data-from="240" data-to="9999"><b>4:00–LIBERA</b> Kart pronto. Quem está com o celular conta os 10 s finais em voz alta.</li>
             </ol>
           </div>
           <div class="action-row">
@@ -952,8 +952,9 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
           <p>Uma rodada custa de 10 a 30 s. Um toque que entorta o kart estraga o resto da prova. Na largada e no meio do pelotão, a prioridade é chegar inteiro.</p>
         </li>
         <li>
-          <h3>Sair do box em 5:00, nem um segundo depois</h3>
+          <h3>Sair do box no LIBERA (<span data-m="release">5:03</span>), nem um segundo depois</h3>
           <p><b><span data-m="slacklap">16</span> s de sobra em cada uma das <span data-m="stops">3</span> paradas custam uma volta inteira.</b> O cronômetro do box conta regressivo, apita nos 60, 30 e 10 s finais e mostra LIBERA.</p>
+          <p>O LIBERA já inclui <span data-m="margin">3</span> s de folga para cobrir o erro de quem aperta o cronômetro. Sair antes do tempo mínimo dá punição, que custa muito mais que essa folga.</p>
         </li>
         <li>
           <h3>Parar na bandeira amarela</h3>
@@ -997,7 +998,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
         <li><span class="t">0:00–1:00</span><p>Troca de piloto. Lastro conferido para o peso mínimo.</p></li>
         <li><span class="t">1:00–3:00</span><p>Quem saiu conta como está o kart (freio, pneu, curva ruim). Quem entra repete em voz alta o alvo de volta e quantas voltas tem o stint. Água.</p></li>
         <li><span class="t">3:00–4:00</span><p>Piloto sentado, cinto, luvas e viseira limpa.</p></li>
-        <li><span class="t">4:00–5:00</span><p>Quem está com o celular conta os 10 s finais em voz alta e libera no LIBERA, nunca antes.</p></li>
+        <li><span class="t">4:00–LIBERA</span><p>Quem está com o celular conta os 10 s finais em voz alta e libera no LIBERA (<span data-m="release">5:03</span>), nunca antes.</p></li>
         <li><span class="t">Depois</span><p>Quem saiu bebe água e descansa 10 minutos. Depois volta ao relógio e à placa. O resto do tempo é livre.</p></li>
       </ol>
 
@@ -1070,7 +1071,9 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     minPitSec: 300,
     // Perdas de cada parada além dos 5:00 (ajuste depois do treino).
     pitLaneLossSec: 10, // entrar e sair do pit lane comparado a seguir na pista
-    exitMarginSec: 2, // folga para não sair antes do tempo mínimo
+    // Folga para não sair antes do tempo mínimo: cobre o erro de quem aperta o
+    // cronômetro (1 a 2 s). Sair cedo dá punição; cada segundo de folga custa 1 s.
+    exitMarginSec: 3,
     outLapLossSec: 1.5, // pneu frio na volta de saída
     // Regulamento e limites da equipe (0 = sem limite).
     maxStintMin: 35,
@@ -1095,7 +1098,7 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
     // Plano da equipe: Kaka (mais rápido) faz stints de 30 min, Guilherme
     // fica com o resto (~22 min). O último stint fecha a conta.
     stintMode: 'custom', // 'equal' | 'custom'
-    customStintMin: [30, 22.1625, 30],
+    customStintMin: [30, 22.1375, 30],
   });
 
   const NUMERIC_KEYS = [
@@ -1834,10 +1837,28 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
   }
 
   // v2: tempos medidos (Kaka 48,05 / Guilherme 48,40) e stints 30/22 min.
-  const CFG_VERSION = 2;
+  // v3: folga de saída do box de 2 para 3 s (libera em 5:03).
+  const CFG_VERSION = 3;
+  const OLD_STINTS_V2 = [30, 22.1625, 30];
   const saved = load() || {};
+  const fromVersion = saved.cfg ? (saved.cfgVersion || 1) : CFG_VERSION;
   let cfg = KS.normalizeConfig(saved.cfg || KS.DEFAULT_CONFIG);
-  if (saved.cfg && (saved.cfgVersion || 1) < CFG_VERSION) cfg = migrateCfg(cfg);
+  if (fromVersion < 2) cfg = migrateCfg(cfg);
+  if (fromVersion < 3) cfg = migrateMargin(cfg);
+
+  function sameStints(a, b) {
+    return Array.isArray(a) && a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) < 1e-6);
+  }
+
+  /** Folga padrão antiga (2 s) vira 3 s; o plano 30/22 é reajustado para os stints do Guilherme ficarem iguais. */
+  function migrateMargin(c) {
+    if (Math.abs(c.exitMarginSec - 2) > 1e-9) return c;
+    const next = { ...c, exitMarginSec: KS.DEFAULT_CONFIG.exitMarginSec };
+    if (c.stintMode === 'custom' && sameStints(c.customStintMin, OLD_STINTS_V2)) {
+      next.customStintMin = KS.DEFAULT_CONFIG.customStintMin.slice();
+    }
+    return KS.normalizeConfig(next);
+  }
 
   /** Quem nunca mexeu nos tempos (48,20 padrão antigo) recebe os tempos e o plano novos. */
   function migrateCfg(c) {
@@ -1856,6 +1877,11 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
 
   // Equipes cadastradas. A primeira vem da configuração atual.
   let teams = Array.isArray(saved.teams) && saved.teams.length ? saved.teams : [KS.teamFromConfig(cfg, 't1')];
+  if (fromVersion < 3) {
+    teams = teams.map((t) => (t.plan && sameStints(t.plan.customStintMin, OLD_STINTS_V2)
+      ? { ...t, plan: { ...t.plan, customStintMin: KS.DEFAULT_CONFIG.customStintMin.slice() } }
+      : t));
+  }
   let activeTeamId = teams.some((t) => t.id === saved.activeTeamId) ? saved.activeTeamId : teams[0].id;
 
   let plan = KS.buildPlan(cfg);
@@ -3275,6 +3301,8 @@ table.meta-table th { white-space: normal; vertical-align: bottom; }
       ylap: fmtNum(cfg.yellowLapSec, 0),
       ygain: fmtNum(Math.max(0, cfg.yellowLapSec - lap), 0),
       ymin: fmtNum(cfg.yellowMinStintMin, 0),
+      release: fmtClock(cfg.minPitSec + cfg.exitMarginSec),
+      margin: fmtNum(cfg.exitMarginSec, Number.isInteger(cfg.exitMarginSec) ? 0 : 1),
     };
     for (const el of document.querySelectorAll('[data-m]')) {
       const v = values[el.dataset.m];

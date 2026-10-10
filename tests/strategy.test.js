@@ -9,6 +9,7 @@ const near = (a, b, tol = 1e-6) => assert.ok(Math.abs(a - b) <= tol, `${a} ≉ $
 // Cenário fixo para testar a matemática: os dois a 48,20 s e stints iguais.
 const EQUAL = {
   ...KS.DEFAULT_CONFIG,
+  exitMarginSec: 2,
   stintMode: 'equal',
   pilots: [{ name: 'Kaka', lapSec: 48.2 }, { name: 'Guilherme Coutinho', lapSec: 48.2 }],
 };
@@ -337,4 +338,13 @@ test('equipes: cada equipe guarda a própria escala', () => {
   const g = KS.applyTeam(KS.DEFAULT_CONFIG, grown);
   assert.deepEqual(g.order, ['p1', 'p2', 'p3', 'p1']);
   assert.equal(g.stintMode, 'equal');
+});
+
+test('box libera em 5:03 (3 s de folga) e o plano 30/22 fecha a conta', () => {
+  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  assert.equal(cfg.minPitSec + cfg.exitMarginSec, 303);
+  const plan = KS.buildPlan(cfg);
+  near(plan.perStopLoss, 314.5);
+  near(plan.stints[1].durSec, plan.stints[3].durSec, 1e-6);
+  near(plan.stints[3].endSec, 7200, 1e-6);
 });

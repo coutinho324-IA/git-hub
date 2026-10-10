@@ -56,10 +56,28 @@
   }
 
   // v2: tempos medidos (Kaka 48,05 / Guilherme 48,40) e stints 30/22 min.
-  const CFG_VERSION = 2;
+  // v3: folga de saída do box de 2 para 3 s (libera em 5:03).
+  const CFG_VERSION = 3;
+  const OLD_STINTS_V2 = [30, 22.1625, 30];
   const saved = load() || {};
+  const fromVersion = saved.cfg ? (saved.cfgVersion || 1) : CFG_VERSION;
   let cfg = KS.normalizeConfig(saved.cfg || KS.DEFAULT_CONFIG);
-  if (saved.cfg && (saved.cfgVersion || 1) < CFG_VERSION) cfg = migrateCfg(cfg);
+  if (fromVersion < 2) cfg = migrateCfg(cfg);
+  if (fromVersion < 3) cfg = migrateMargin(cfg);
+
+  function sameStints(a, b) {
+    return Array.isArray(a) && a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) < 1e-6);
+  }
+
+  /** Folga padrão antiga (2 s) vira 3 s; o plano 30/22 é reajustado para os stints do Guilherme ficarem iguais. */
+  function migrateMargin(c) {
+    if (Math.abs(c.exitMarginSec - 2) > 1e-9) return c;
+    const next = { ...c, exitMarginSec: KS.DEFAULT_CONFIG.exitMarginSec };
+    if (c.stintMode === 'custom' && sameStints(c.customStintMin, OLD_STINTS_V2)) {
+      next.customStintMin = KS.DEFAULT_CONFIG.customStintMin.slice();
+    }
+    return KS.normalizeConfig(next);
+  }
 
   /** Quem nunca mexeu nos tempos (48,20 padrão antigo) recebe os tempos e o plano novos. */
   function migrateCfg(c) {
@@ -78,6 +96,11 @@
 
   // Equipes cadastradas. A primeira vem da configuração atual.
   let teams = Array.isArray(saved.teams) && saved.teams.length ? saved.teams : [KS.teamFromConfig(cfg, 't1')];
+  if (fromVersion < 3) {
+    teams = teams.map((t) => (t.plan && sameStints(t.plan.customStintMin, OLD_STINTS_V2)
+      ? { ...t, plan: { ...t.plan, customStintMin: KS.DEFAULT_CONFIG.customStintMin.slice() } }
+      : t));
+  }
   let activeTeamId = teams.some((t) => t.id === saved.activeTeamId) ? saved.activeTeamId : teams[0].id;
 
   let plan = KS.buildPlan(cfg);
@@ -1497,6 +1520,8 @@
       ylap: fmtNum(cfg.yellowLapSec, 0),
       ygain: fmtNum(Math.max(0, cfg.yellowLapSec - lap), 0),
       ymin: fmtNum(cfg.yellowMinStintMin, 0),
+      release: fmtClock(cfg.minPitSec + cfg.exitMarginSec),
+      margin: fmtNum(cfg.exitMarginSec, Number.isInteger(cfg.exitMarginSec) ? 0 : 1),
     };
     for (const el of document.querySelectorAll('[data-m]')) {
       const v = values[el.dataset.m];

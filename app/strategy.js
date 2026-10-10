@@ -24,7 +24,9 @@
     minPitSec: 300,
     // Perdas de cada parada além dos 5:00 (ajuste depois do treino).
     pitLaneLossSec: 10, // entrar e sair do pit lane comparado a seguir na pista
-    exitMarginSec: 2, // folga para não sair antes do tempo mínimo
+    // Folga para não sair antes do tempo mínimo: cobre o erro de quem aperta o
+    // cronômetro (1 a 2 s). Sair cedo dá punição; cada segundo de folga custa 1 s.
+    exitMarginSec: 3,
     outLapLossSec: 1.5, // pneu frio na volta de saída
     // Regulamento e limites da equipe (0 = sem limite).
     maxStintMin: 35,
@@ -49,7 +51,7 @@
     // Plano da equipe: Kaka (mais rápido) faz stints de 30 min, Guilherme
     // fica com o resto (~22 min). O último stint fecha a conta.
     stintMode: 'custom', // 'equal' | 'custom'
-    customStintMin: [30, 22.1625, 30],
+    customStintMin: [30, 22.1375, 30],
   });
 
   const NUMERIC_KEYS = [

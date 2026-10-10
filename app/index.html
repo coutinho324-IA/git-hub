@@ -128,7 +128,7 @@
           <label class="field"><span>Pit lane, entrada + saída (s)</span><input id="f-pitLaneLossSec" data-key="pitLaneLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Folga de segurança na saída (s)</span><input id="f-exitMarginSec" data-key="exitMarginSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Volta de saída, pneu frio (s)</span><input id="f-outLapLossSec" data-key="outLapLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
-          <p class="hint field-wide">Meça no treino: cronometre do ponto de frenagem da entrada até a linha de saída e compare com uma volta normal.</p>
+          <p class="hint field-wide">Meça no treino: cronometre do ponto de frenagem da entrada até a linha de saída e compare com uma volta normal. A folga de 3 s cobre o erro de quem aperta o cronômetro; sair antes do tempo mínimo dá punição.</p>
         </fieldset>
         <fieldset>
           <legend>Regulamento e limites <small>0 = sem limite</small></legend>
@@ -275,7 +275,7 @@
               <li data-from="0" data-to="60"><b>0:00–1:00</b> Celular passa para quem saiu do kart. Troca de piloto, lastro e banco.</li>
               <li data-from="60" data-to="180"><b>1:00–3:00</b> Quem saiu conta como está o kart. Quem entra repete o plano do stint. Água.</li>
               <li data-from="180" data-to="240"><b>3:00–4:00</b> Piloto sentado, cinto, luvas, viseira limpa.</li>
-              <li data-from="240" data-to="9999"><b>4:00–5:00</b> Kart pronto. Quem está com o celular conta os 10 s finais em voz alta.</li>
+              <li data-from="240" data-to="9999"><b>4:00–LIBERA</b> Kart pronto. Quem está com o celular conta os 10 s finais em voz alta.</li>
             </ol>
           </div>
           <div class="action-row">
@@ -376,8 +376,9 @@
           <p>Uma rodada custa de 10 a 30 s. Um toque que entorta o kart estraga o resto da prova. Na largada e no meio do pelotão, a prioridade é chegar inteiro.</p>
         </li>
         <li>
-          <h3>Sair do box em 5:00, nem um segundo depois</h3>
+          <h3>Sair do box no LIBERA (<span data-m="release">5:03</span>), nem um segundo depois</h3>
           <p><b><span data-m="slacklap">16</span> s de sobra em cada uma das <span data-m="stops">3</span> paradas custam uma volta inteira.</b> O cronômetro do box conta regressivo, apita nos 60, 30 e 10 s finais e mostra LIBERA.</p>
+          <p>O LIBERA já inclui <span data-m="margin">3</span> s de folga para cobrir o erro de quem aperta o cronômetro. Sair antes do tempo mínimo dá punição, que custa muito mais que essa folga.</p>
         </li>
         <li>
           <h3>Parar na bandeira amarela</h3>
@@ -421,7 +422,7 @@
         <li><span class="t">0:00–1:00</span><p>Troca de piloto. Lastro conferido para o peso mínimo.</p></li>
         <li><span class="t">1:00–3:00</span><p>Quem saiu conta como está o kart (freio, pneu, curva ruim). Quem entra repete em voz alta o alvo de volta e quantas voltas tem o stint. Água.</p></li>
         <li><span class="t">3:00–4:00</span><p>Piloto sentado, cinto, luvas e viseira limpa.</p></li>
-        <li><span class="t">4:00–5:00</span><p>Quem está com o celular conta os 10 s finais em voz alta e libera no LIBERA, nunca antes.</p></li>
+        <li><span class="t">4:00–LIBERA</span><p>Quem está com o celular conta os 10 s finais em voz alta e libera no LIBERA (<span data-m="release">5:03</span>), nunca antes.</p></li>
         <li><span class="t">Depois</span><p>Quem saiu bebe água e descansa 10 minutos. Depois volta ao relógio e à placa. O resto do tempo é livre.</p></li>
       </ol>
 

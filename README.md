@@ -59,8 +59,8 @@ Os dados ficam salvos no próprio aparelho (localStorage). No dia da prova, use 
 |---|---|
 | Duração | 2 h = 7.200 s |
 | Tempo parado obrigatório | 3 × 5:00 = 15:00 |
-| Perda real por parada | 5:00 + 2 s de folga + ~10 s de pit lane + ~1,5 s de pneu frio ≈ **5:13,5** |
-| Tempo de pista | ≈ **1:44:20** |
+| Perda real por parada | 5:00 + 3 s de folga + ~10 s de pit lane + ~1,5 s de pneu frio ≈ **5:14,5** |
+| Tempo de pista | ≈ **1:44:17** |
 | Voltas estimadas | ≈ **130** (129,9) |
 | Stints | Kaka 2 × **30:00** (≈ 37 voltas cada) · Guilherme 2 × **22:10** (≈ 27 voltas cada) |
 
@@ -73,11 +73,11 @@ Kaka é 0,35 s por volta mais rápido, então faz stints de 30 min e o Guilherme
 | Stint | Piloto | De → até | Voltas | Entra no box |
 |---|---|---|---|---|
 | 1 | Kaka | 0:00 → 30:00 | 37,5 | volta 37 (janela V34–V40, prazo 35:00) |
-| 2 | Guilherme Coutinho | 35:14 → 57:23 | 27,5 | volta 65 (janela V62–V68, prazo 1:10:14) |
+| 2 | Guilherme Coutinho | 35:15 → 57:23 | 27,4 | volta 65 (janela V62–V68, prazo 1:10:15) |
 | 3 | Kaka | 1:02:37 → 1:32:37 | 37,5 | volta 102 (janela V99–V105, prazo 1:37:37) |
-| 4 | Guilherme Coutinho | 1:37:50 → 2:00:00 | 27,5 | bandeira |
+| 4 | Guilherme Coutinho | 1:37:52 → 2:00:00 | 27,4 | bandeira |
 
-- **Tempo de pista:** Kaka 1:00:00 (≈ 75 voltas), Guilherme 44:20 (≈ 55 voltas).
+- **Tempo de pista:** Kaka 1:00:00 (≈ 75 voltas), Guilherme 44:17 (≈ 55 voltas).
 - **Ganho:** cerca de 3,4 s na prova em relação a dividir igual.
 - **Folga:** cada parada do Kaka fica 5 min antes do prazo. Assim sobra janela para aproveitar uma amarela ou atrasar se o piloto estiver bem.
 - **Botão Otimizar pelo ritmo:** leva o Kaka até cerca de 32,5 min por stint (≈ 5,7 s de ganho). Sempre sobram 3 voltas de janela antes do prazo, mas os stints longos cansam mais.
@@ -103,7 +103,7 @@ A mesma meta aparece na ficha de cada piloto (aba Manual) e embaixo do nome do p
 
 | | Estratégia A: Kaka abre | Estratégia B: Guilherme abre |
 |---|---|---|
-| Stints | Kaka 0:00–30:00 · Guilherme 35:14–57:23 · Kaka 1:02:37–1:32:37 · Guilherme 1:37:50–2:00 | Guilherme 0:00–22:10 · Kaka 27:23–57:23 · Guilherme 1:02:37–1:24:47 · Kaka 1:30:00–2:00 |
+| Stints | Kaka 0:00–30:00 · Guilherme 35:15–57:23 · Kaka 1:02:37–1:32:37 · Guilherme 1:37:52–2:00 | Guilherme 0:00–22:08 · Kaka 27:23–57:23 · Guilherme 1:02:37–1:24:46 · Kaka 1:30:00–2:00 |
 | Box nas voltas | 37, 65, 102 | 27, 65, 92 |
 | Quem fecha | Guilherme | Kaka (o mais rápido defende ou ganha posição no fim) |
 | Voltas | 129,9 | 129,9 |
@@ -118,7 +118,7 @@ A equipe corre contra o relógio, não contra as outras equipes. Ninguém precis
 
 1. **Ritmo constante.** Em 130 voltas, 0,1 s por volta vira 13 s no fim; 0,3 s vira 39 s, quase uma volta.
 2. **Zero incidente.** Uma rodada custa de 10 a 30 s. Na largada e no pelotão, a prioridade é chegar inteiro.
-3. **Sair do box em 5:00.** 16 s de sobra em cada uma das 3 paradas custam uma volta inteira.
+3. **Sair do box no LIBERA (5:03).** O app soma 3 s de folga aos 5:00 para cobrir o erro de quem aperta o cronômetro; sair antes do mínimo dá punição. Além disso, 16 s de sobra em cada uma das 3 paradas custam uma volta inteira.
 4. **Parar na bandeira amarela.** Todo mundo vê a bandeira, não precisa olhar ninguém. Cada volta de amarela durante a parada vale cerca de 17 s. Regra: amarela com 15 min ou mais de stint e janela aberta = BOX.
 5. **Entrada e saída do box.** Volta de entrada forte até o limite do pit; volta de saída com cuidado, pneu frio.
 
@@ -158,7 +158,7 @@ Quem está fora do kart faz o papel de equipe de box.
 | 0:00–1:00 | Troca de piloto. Lastro conferido. |
 | 1:00–3:00 | Quem saiu conta como está o kart; quem entra repete o alvo de volta e as voltas do stint. Água. |
 | 3:00–4:00 | Piloto sentado, cinto, luvas, viseira limpa. |
-| 4:00–5:00 | Quem está com o celular conta os 10 s finais e libera no LIBERA. |
+| 4:00–LIBERA | Quem está com o celular conta os 10 s finais e libera no LIBERA (5:03). |
 | Depois | Quem saiu bebe água, descansa 10 min e volta ao relógio e à placa. |
 
 ### Confirme no regulamento
