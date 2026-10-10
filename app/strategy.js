@@ -738,8 +738,9 @@
   const SPLIT_MAX_COLS = 4;
   const SPLIT_MAX_ROWS = 3;
 
-  /** Partes da tela de um modelo, ou da divisão livre (colunas × linhas). */
-  function splitCells(layoutId, cols, rows) {
+  /** Partes da tela de um modelo, da divisão livre (colunas × linhas) ou automática (n partes). */
+  function splitCells(layoutId, cols, rows, count) {
+    if (layoutId === 'auto') return fitSplit(count);
     const preset = SPLIT_LAYOUTS.find((l) => l.id === layoutId);
     const c = preset ? preset.cols : clamp(Math.round(num(cols, 2)), 1, SPLIT_MAX_COLS);
     const r = preset ? preset.rows : clamp(Math.round(num(rows, 1)), 1, SPLIT_MAX_ROWS);
@@ -747,6 +748,32 @@
       ? preset.cells.map(([col, row, colSpan, rowSpan]) => ({ col, row, colSpan, rowSpan }))
       : Array.from({ length: c * r }, (_, i) => ({ col: (i % c) + 1, row: Math.floor(i / c) + 1, colSpan: 1, rowSpan: 1 }));
     return { id: preset ? preset.id : 'free', cols: c, rows: r, cells };
+  }
+
+  /**
+   * Divisão para n partes usando a tela toda: a grade mais equilibrada
+   * (até 4 colunas × 3 linhas). Se a última linha tiver menos partes, elas
+   * ficam mais largas para fechar a linha.
+   */
+  function fitSplit(n) {
+    const count = clamp(Math.round(num(n, 1)), 1, SPLIT_MAX_COLS * SPLIT_MAX_ROWS);
+    const [c, r] = count <= 3 ? [count, 1] : count === 4 ? [2, 2] : count <= 6 ? [3, 2] : count <= 8 ? [4, 2] : count === 9 ? [3, 3] : [4, 3];
+    if (c * r === count) {
+      const preset = SPLIT_LAYOUTS.find((l) => !l.cells && l.cols === c && l.rows === r);
+      return preset ? splitCells(preset.id) : splitCells('free', c, r);
+    }
+    const last = count - c * (r - 1);
+    const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+    const cols = (c * last) / gcd(c, last);
+    const cells = [];
+    for (let i = 0; i < count; i++) {
+      const row = Math.floor(i / c) + 1;
+      const inRow = row < r ? c : last;
+      const pos = row < r ? i % c : i - c * (r - 1);
+      const span = cols / inRow;
+      cells.push({ col: pos * span + 1, row, colSpan: span, rowSpan: 1 });
+    }
+    return { id: 'auto', cols, rows: r, cells };
   }
 
   /**
@@ -787,6 +814,38 @@
         secBehind: tied ? 0 : lapsBehind * bestLap,
       };
     });
+  }
+
+  // ======================= CONFIGURAÇÕES =======================
+
+  const MENU_NAME_MAX = 18;
+
+  /**
+   * Ordem e nomes dos menus escolhidos pela equipe. A ordem traz cada id uma
+   * vez (os que faltam vão para o fim); nome vazio usa o nome padrão.
+   */
+  function normalizeMenus(input, ids) {
+    const src = input || {};
+    const order = [];
+    for (const id of Array.isArray(src.order) ? src.order : []) {
+      if (ids.includes(id) && !order.includes(id)) order.push(id);
+    }
+    for (const id of ids) if (!order.includes(id)) order.push(id);
+    const names = {};
+    for (const id of ids) {
+      const n = String((src.names && src.names[id]) || '').replace(/\s+/g, ' ').trim().slice(0, MENU_NAME_MAX);
+      if (n) names[id] = n;
+    }
+    return { order, names };
+  }
+
+  /** Cópia da lista com o item da posição `from` levado para a posição `to`. */
+  function moveItem(list, from, to) {
+    const out = list.slice();
+    if (from < 0 || from >= out.length) return out;
+    const [item] = out.splice(from, 1);
+    out.splice(clamp(to, 0, out.length), 0, item);
+    return out;
   }
 
   /** Tempo de pista acumulado por piloto, incluindo o stint em andamento. */
@@ -833,8 +892,12 @@
     SPLIT_MAX_COLS,
     SPLIT_MAX_ROWS,
     splitCells,
+    fitSplit,
     variantConfig,
     rankByLaps,
+    MENU_NAME_MAX,
+    normalizeMenus,
+    moveItem,
     driveTimes,
     mean,
     stdev,

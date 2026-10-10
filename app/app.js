@@ -4,7 +4,10 @@
 
   const KS = window.KartStrategy;
   const STORAGE_KEY = 'ajm-kart-v1';
-  const TABS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
+  // Menus da barra (a equipe escolhe nome e ordem em Configurações) e a
+  // página de configurações, aberta pela engrenagem do topo.
+  const MENU_IDS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
+  const TABS = [...MENU_IDS, 'config'];
   // Uma cor por posição do piloto no cadastro (até 6) e a cor do texto sobre ela.
   const PILOT_VARS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
   const PILOT_ON = ['#ffffff', '#111517', '#111517', '#111517', '#111517', '#ffffff'];
@@ -194,16 +197,23 @@
   }
 
   // ---------- Abas ----------
+  let prevTab = 'plano';
   function setTab(tab) {
     if (!TABS.includes(tab)) tab = 'plano';
+    if (tab === 'config' && ui.tab !== 'config') prevTab = ui.tab;
     ui.tab = tab;
     document.body.dataset.tab = tab;
+    if (tab !== 'comparar') undockAll();
     for (const t of TABS) {
-      $(`tab-${t}`).hidden = t !== tab;
+      $(`tab-${t}`).hidden = t !== tab && !docked.includes(t);
       const b = $(`t-${t}`);
+      if (!b) continue;
       b.setAttribute('aria-selected', String(t === tab));
       b.tabIndex = t === tab ? 0 : -1;
     }
+    // Em Configurações nenhum menu fica marcado; o primeiro continua alcançável pelo teclado.
+    if (!MENU_IDS.includes(tab)) $(`t-${menuOrder()[0]}`).tabIndex = 0;
+    $('btnConfig').setAttribute('aria-pressed', String(tab === 'config'));
     try { history.replaceState(null, '', `#${tab}`); } catch (e) { /* ok */ }
     renderTab();
     save();
@@ -218,8 +228,10 @@
   });
   document.querySelector('.tabs').addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    const i = TABS.indexOf(ui.tab) + (e.key === 'ArrowRight' ? 1 : -1);
-    const next = TABS[(i + TABS.length) % TABS.length];
+    const order = menuOrder();
+    const cur = order.indexOf(ui.tab);
+    const i = cur < 0 ? 0 : cur + (e.key === 'ArrowRight' ? 1 : -1);
+    const next = order[(i + order.length) % order.length];
     setTab(next);
     $(`t-${next}`).focus();
   });
@@ -230,6 +242,7 @@
     else if (ui.tab === 'comparar') renderCompare();
     else if (ui.tab === 'vivo') renderLive(true);
     else if (ui.tab === 'analise') renderAnalysis();
+    else if (ui.tab === 'config') renderConfig();
     else renderManual();
   }
 
@@ -1009,7 +1022,7 @@
     const inPit = !!race.pit;
 
     $('miniClock').textContent = isStarted ? fmtHMS(Math.max(0, T - el)) : fmtHMS(T);
-    if (ui.tab !== 'vivo' && !force) return;
+    if (!force && !cmpShows('vivo')) return;
 
     const finished = isStarted && el >= T;
     $('lvClockLabel').textContent = !isStarted ? 'Duração da prova' : finished ? 'Bandeira quadriculada' : race.pausedAt ? 'Relógio pausado' : 'Tempo restante';
@@ -1680,7 +1693,7 @@
     pitBeeps();
     renderLive(false);
     const now = Date.now();
-    if (ui.tab === 'plano' && now - lastPlanTick > 5000) { lastPlanTick = now; renderTimeline(); }
+    if (cmpShows('plano') && now - lastPlanTick > 5000) { lastPlanTick = now; renderTimeline(); }
   }, 250);
 
   // ======================= TEMA =======================
@@ -1701,6 +1714,7 @@
     btn.setAttribute('aria-label', `Tema: ${THEME_NAMES[t]}. Toque para trocar.`);
     btn.title = `Tema: ${THEME_NAMES[t]}`;
     $('themeLabel').textContent = THEME_SHORT[t];
+    renderThemeOptions();
   }
 
   $('btnTheme').addEventListener('click', () => {
@@ -1801,7 +1815,8 @@
   $('teamSelect').addEventListener('change', (e) => useTeam(e.target.value));
   $('btnEditTeams').addEventListener('click', () => {
     editor.open(activeTeamId);
-    setTab('equipes');
+    if (cmpShows('equipes')) renderTeams();
+    else setTab('equipes');
   });
 
   function renderTeamSummary() {
@@ -1935,6 +1950,7 @@
         ? 'Equipe salva. O plano já foi refeito com os dados novos.'
         : 'Equipe salva. Toque em Usar na lista para correr com ela.';
       renderTeamList();
+      if (ui.tab === 'comparar') renderCompare();
     });
 
     $('te-cancel').addEventListener('click', () => open(editingId === 'new' ? activeTeamId : editingId));
@@ -1951,6 +1967,7 @@
       open(activeTeamId);
       $('te-status').textContent = 'Equipe excluída.';
       renderTeamList();
+      if (ui.tab === 'comparar') renderCompare();
     });
 
     $('btnNewTeam').addEventListener('click', () => {
@@ -2011,10 +2028,56 @@
   }
 
   // ======================= COMPARAR =======================
-  // A tela dividida em partes; cada parte mostra uma equipe com uma escala.
-  // Todas usam as regras da prova do Plano (duração, paradas, box, limites).
-  ui.cmp = Object.assign({ layout: 'c2', cols: 2, rows: 2, panes: [] }, ui.cmp || {});
+  // A tela dividida em partes. Cada parte mostra um menu do app (Plano, Ao
+  // vivo, Análise, Equipes, Manual) ou a estratégia de uma equipe. As
+  // estratégias usam as regras da prova do Plano (duração, paradas, box).
+  ui.cmp = Object.assign({ layout: 'c2', cols: 2, rows: 2, count: 2, panes: [] }, ui.cmp || {});
   if (!Array.isArray(ui.cmp.panes)) ui.cmp.panes = [];
+
+  const CMP_MENUS = [
+    ['team', 'Estratégia de equipe'],
+    ['plano', 'Plano'],
+    ['vivo', 'Ao vivo'],
+    ['analise', 'Análise'],
+    ['equipes', 'Equipes'],
+    ['manual', 'Manual'],
+  ];
+  const DOCKABLE = CMP_MENUS.map(([m]) => m).filter((m) => m !== 'team');
+
+  // Os menus mostrados na tela dividida são as próprias abas, levadas para
+  // dentro da parte (cada uma aparece numa parte só) e devolvidas ao sair.
+  const dockHome = {};
+  for (const t of DOCKABLE) {
+    const ph = document.createComment(` aba ${t} `);
+    $(`tab-${t}`).before(ph);
+    dockHome[t] = ph;
+  }
+  let docked = [];
+  let cmpKey = '';
+  let cmpLast = [];
+  function cmpShows(t) { return ui.tab === t || docked.includes(t); }
+  function undockAll() {
+    for (const t of docked) {
+      const sec = $(`tab-${t}`);
+      dockHome[t].after(sec);
+      sec.hidden = t !== ui.tab;
+    }
+    docked = [];
+    cmpKey = '';
+  }
+  function dockInto(t, host) {
+    const sec = $(`tab-${t}`);
+    host.appendChild(sec);
+    sec.hidden = false;
+    docked.push(t);
+  }
+  function renderMenu(t) {
+    if (t === 'equipes') renderTeams();
+    else if (t === 'plano') renderPlan();
+    else if (t === 'vivo') renderLive(true);
+    else if (t === 'analise') renderAnalysis();
+    else if (t === 'manual') renderManual();
+  }
 
   const mkEl = (tag, cls, text) => {
     const e = document.createElement(tag);
@@ -2050,22 +2113,143 @@
     return out;
   }
 
-  function cmpPane(i, defaults) {
-    const saved = ui.cmp.panes[i];
-    const team = saved && teams.find((t) => t.id === saved.teamId);
+  /** O que a parte i mostra. Um menu já usado numa parte anterior vira estratégia de equipe. */
+  function cmpPane(i, defaults, used) {
+    const saved = ui.cmp.panes[i] || {};
+    if (DOCKABLE.includes(saved.menu) && !used.has(saved.menu)) {
+      used.add(saved.menu);
+      return { menu: saved.menu };
+    }
+    const team = teams.find((t) => t.id === saved.teamId);
     if (team) {
       const ok = cmpViews(team).some(([v]) => v === saved.view);
-      return { team, view: ok ? saved.view : 'plan' };
+      return { menu: 'team', team, view: ok ? saved.view : 'plan' };
     }
     const d = defaults[i % defaults.length];
-    return { team: teams.find((t) => t.id === d.teamId), view: d.view };
+    return { menu: 'team', team: teams.find((t) => t.id === d.teamId), view: d.view };
+  }
+
+  function storePane(i, value) {
+    while (ui.cmp.panes.length <= i) ui.cmp.panes.push(null);
+    ui.cmp.panes[i] = value;
   }
 
   function setPane(i, teamId, view) {
-    while (ui.cmp.panes.length <= i) ui.cmp.panes.push(null);
-    ui.cmp.panes[i] = { teamId, view };
+    storePane(i, { menu: 'team', teamId, view });
     save();
     renderCompare();
+  }
+
+  /** Troca o menu da parte i. Se o menu já está em outra parte, as duas trocam de lugar. */
+  function setPaneMenu(i, menu) {
+    const prev = cmpLast[i];
+    const keep = (q) => (q.menu === 'team' ? { menu: 'team', teamId: q.team.id, view: q.view } : { menu: q.menu });
+    if (menu === 'team') {
+      storePane(i, { menu: 'team' });
+    } else {
+      const other = cmpLast.findIndex((q, k) => k !== i && q.menu === menu);
+      if (other >= 0 && prev) storePane(other, keep(prev));
+      storePane(i, { menu });
+    }
+    save();
+    renderCompare();
+  }
+
+  function cmpMenuSelect(p) {
+    const sel = mkEl('select', 'cmp-menu');
+    sel.setAttribute('aria-label', `O que mostrar na parte ${p.i + 1}`);
+    const options = [['team', CMP_MENUS[0][1]], ...menuOrder().filter((m) => DOCKABLE.includes(m)).map((m) => [m, menuName(m)])];
+    sel.replaceChildren(...options.map(([v, label]) => {
+      const o = mkEl('option', null, label);
+      o.value = v;
+      return o;
+    }));
+    sel.value = p.menu;
+    sel.addEventListener('change', () => setPaneMenu(p.i, sel.value));
+    return sel;
+  }
+
+  // Quais e quantas equipes aparecem juntas. Ligar uma equipe acrescenta
+  // uma parte; desligar tira as partes dela. A tela se redivide sozinha.
+  const MAX_PARTS = KS.SPLIT_MAX_COLS * KS.SPLIT_MAX_ROWS;
+  const paneValue = (q) => (q.menu === 'team' ? { menu: 'team', teamId: q.team.id, view: q.view } : { menu: q.menu });
+
+  function setPanes(list) {
+    const fit = KS.fitSplit(list.length);
+    ui.cmp.layout = fit.id;
+    if (fit.id === 'free') { ui.cmp.cols = fit.cols; ui.cmp.rows = fit.rows; }
+    ui.cmp.count = list.length;
+    ui.cmp.panes = list;
+    save();
+    renderCompare();
+  }
+
+  function toggleTeam(id) {
+    const cur = cmpLast.map(paneValue);
+    const isShown = (v) => v.menu === 'team' && v.teamId === id;
+    if (cur.some(isShown)) {
+      const next = cur.filter((v) => !isShown(v));
+      if (next.length) setPanes(next);
+    } else if (cur.length < MAX_PARTS) {
+      setPanes([...cur, { menu: 'team', teamId: id, view: 'plan' }]);
+    }
+  }
+
+  function showAllTeams() {
+    const cur = cmpLast.map(paneValue);
+    const missing = teams.filter((t) => !cur.some((v) => v.menu === 'team' && v.teamId === t.id));
+    setPanes([...cur, ...missing.map((t) => ({ menu: 'team', teamId: t.id, view: 'plan' }))].slice(0, MAX_PARTS));
+  }
+
+  function renderTeamChips(panes) {
+    const shown = new Set(panes.filter((p) => p.menu === 'team').map((p) => p.team.id));
+    const full = panes.length >= MAX_PARTS;
+    const wrap = $('cmpTeamChips');
+    const chips = teams.map((t) => {
+      const on = shown.has(t.id);
+      const b = mkEl('button', 'cmp-chip', t.workshop ? `${t.name} (${t.workshop})` : t.name);
+      b.type = 'button';
+      b.setAttribute('aria-pressed', String(on));
+      b.disabled = !on && full;
+      b.title = on ? 'Tirar da tela' : full ? 'A tela já tem 12 partes' : 'Mostrar na tela';
+      b.addEventListener('click', () => toggleTeam(t.id));
+      return b;
+    });
+    if (teams.length > 1 && teams.some((t) => !shown.has(t.id)) && !full) {
+      const all = mkEl('button', 'cmp-chip cmp-chip-action', 'Todas');
+      all.type = 'button';
+      all.title = 'Mostrar todas as equipes cadastradas';
+      all.addEventListener('click', showAllTeams);
+      chips.push(all);
+    }
+    const add = mkEl('button', 'cmp-chip cmp-chip-action', '+ Cadastrar equipe');
+    add.type = 'button';
+    add.addEventListener('click', () => {
+      editor.open('new');
+      if (cmpShows('equipes')) renderTeams();
+      else setTab('equipes');
+      $('te-name').focus();
+    });
+    chips.push(add);
+    wrap.replaceChildren(...chips);
+    $('cmpTeamCount').textContent = `${shown.size} de ${teams.length}`;
+  }
+
+  function cmpArea(cell) { return `${cell.row} / ${cell.col} / span ${cell.rowSpan} / span ${cell.colSpan}`; }
+
+  /** Parte que mostra um menu do app (a aba é colocada no corpo depois). */
+  function menuPaneEl(p) {
+    const pane = mkEl('article', 'cmp-pane cmp-menu-pane');
+    pane.style.gridArea = cmpArea(p.cell);
+    pane.dataset.menu = p.menu;
+    const name = menuName(p.menu);
+    pane.setAttribute('aria-label', `Parte ${p.i + 1}: ${name}`);
+    const head = mkEl('header', 'cmp-head');
+    const pick = mkEl('div', 'cmp-pick');
+    pick.appendChild(cmpMenuSelect(p));
+    head.append(mkEl('span', 'cmp-pos cmp-num', String(p.i + 1)), pick);
+    pane.append(head, mkEl('div', 'cmp-body'));
+    return pane;
   }
 
   // Modelos de divisão (miniaturas) e divisão livre.
@@ -2085,6 +2269,8 @@
   function renderCmpModels(split) {
     const wrap = $('cmpModels');
     const models = [...KS.SPLIT_LAYOUTS.map((l) => ({ id: l.id, name: l.name })), { id: 'free', name: FREE_NAME }];
+    // Divisão automática (escolhida pelas equipes na tela) aparece só quando está em uso.
+    if (split.id === 'auto') models.push({ id: 'auto', name: `${split.cells.length} partes` });
     wrap.replaceChildren(...models.map((m) => {
       const b = mkEl('button', 'cmp-model');
       b.type = 'button';
@@ -2093,10 +2279,11 @@
       const on = split.id === m.id;
       b.setAttribute('aria-checked', String(on));
       b.tabIndex = on ? 0 : -1;
-      const s = m.id === 'free' ? KS.splitCells('free', ui.cmp.cols, ui.cmp.rows) : KS.splitCells(m.id);
+      const s = m.id === 'free' ? KS.splitCells('free', ui.cmp.cols, ui.cmp.rows) : m.id === 'auto' ? split : KS.splitCells(m.id);
       const name = m.id === 'free' ? `${FREE_NAME} ${s.cols}×${s.rows}` : m.name;
       b.append(cmpThumb(s), mkEl('span', 'cmp-model-name', name));
-      b.title = m.id === 'free' ? 'Você escolhe colunas e linhas' : `${m.name}: ${s.cells.length} partes`;
+      b.title = m.id === 'free' ? 'Você escolhe colunas e linhas'
+        : m.id === 'auto' ? 'Dividida sozinha para caber as equipes escolhidas' : `${m.name}: ${s.cells.length} partes`;
       return b;
     }));
     $('cmpFree').hidden = split.id !== 'free';
@@ -2120,7 +2307,7 @@
     if (!(e.key in keys)) return;
     e.preventDefault();
     const ids = [...$('cmpModels').querySelectorAll('[data-layout]')].map((b) => b.dataset.layout);
-    const i = ids.indexOf(KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows).id);
+    const i = ids.indexOf(KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows, ui.cmp.count).id);
     chooseLayout(ids[(i + keys[e.key] + ids.length) % ids.length]);
   });
 
@@ -2180,28 +2367,49 @@
   let cmpWidth = 0;
   function renderCompare() {
     cmpWidth = window.innerWidth;
-    const split = KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows);
+    const split = KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows, ui.cmp.count);
     renderCmpModels(split);
     const grid = $('cmpGrid');
     grid.dataset.layout = split.id;
     grid.style.setProperty('--cmp-cols', split.cols);
     grid.style.setProperty('--cmp-rows', split.rows);
     const defaults = cmpDefaults();
+    const used = new Set();
     const panes = split.cells.map((cell, i) => {
-      const { team, view } = cmpPane(i, defaults);
-      const pcfg = KS.variantConfig(teamCfg(team), view);
-      const p = { i, cell, team, view, cfg: pcfg, plan: KS.buildPlan(pcfg) };
-      p.targets = KS.paceTargets(p.plan);
+      const p = { i, cell, ...cmpPane(i, defaults, used) };
+      if (p.menu === 'team') {
+        p.cfg = KS.variantConfig(teamCfg(p.team), p.view);
+        p.plan = KS.buildPlan(p.cfg);
+        p.targets = KS.paceTargets(p.plan);
+      }
       return p;
     });
-    const ranks = KS.rankByLaps(panes.map((p) => p.plan));
+    cmpLast = panes;
+    renderTeamChips(panes);
+    // Classificação só entre as partes que mostram estratégia de equipe.
+    const teamPanes = panes.filter((p) => p.menu === 'team');
+    const ranks = KS.rankByLaps(teamPanes.map((p) => p.plan));
+    teamPanes.forEach((p, k) => { p.rank = ranks[k]; });
     // Vantagem de quem está na frente sobre o próximo colocado, em segundos.
     const behind = ranks.filter((r) => r.secBehind > 0).map((r) => r.secBehind);
     const lead = behind.length ? Math.min(...behind) : 0;
-    grid.replaceChildren(...panes.map((p) => cmpPaneEl(p, ranks[p.i], panes.length, lead)));
+    const build = (p) => (p.menu === 'team' ? cmpPaneEl(p, p.rank, teamPanes.length, lead) : menuPaneEl(p));
+
+    // Mesma divisão e mesmos menus: só refaz as estratégias, sem mexer nas
+    // abas (quem está digitando no Plano não perde o campo).
+    const key = JSON.stringify([split.id, split.cols, split.rows, panes.map((p) => p.menu)]);
+    if (key !== cmpKey || grid.children.length !== panes.length) {
+      undockAll();
+      grid.replaceChildren(...panes.map(build));
+      for (const p of panes) if (p.menu !== 'team') dockInto(p.menu, grid.children[p.i].querySelector('.cmp-body'));
+      cmpKey = key;
+    } else {
+      for (const p of teamPanes) grid.replaceChild(build(p), grid.children[p.i]);
+    }
     sizeCompare(split);
     // A linha do tempo usa a largura final de cada parte.
-    panes.forEach((p) => cmpTimeline(grid.children[p.i].querySelector('.cmp-tl'), p));
+    teamPanes.forEach((p) => cmpTimeline(grid.children[p.i].querySelector('.cmp-tl'), p));
+    for (const p of panes) if (p.menu !== 'team') renderMenu(p.menu);
   }
 
   function cmpPilotVar(id) { return `var(${PILOT_VARS[Number(String(id).slice(1)) - 1] || '--p1'})`; }
@@ -2210,7 +2418,8 @@
     const { team, view, plan, targets } = p;
     const c = p.cfg;
     const pane = mkEl('article', 'cmp-pane');
-    pane.style.gridArea = `${p.cell.row} / ${p.cell.col} / span ${p.cell.rowSpan} / span ${p.cell.colSpan}`;
+    pane.style.gridArea = cmpArea(p.cell);
+    pane.dataset.menu = 'team';
     pane.dataset.pos = String(rank.pos);
     pane.setAttribute('aria-label', `Parte ${p.i + 1}: ${team.name}`);
 
@@ -2237,7 +2446,7 @@
     viewSel.value = view;
     viewSel.addEventListener('change', () => setPane(p.i, team.id, viewSel.value));
     const pick = mkEl('div', 'cmp-pick');
-    pick.append(teamSel, viewSel);
+    pick.append(cmpMenuSelect(p), teamSel, viewSel);
     head.append(pos, pick);
     pane.appendChild(head);
 
@@ -2364,6 +2573,13 @@
         planNotes = [`Escala "${label}" trazida da comparação.`];
         updatePlan();
       }
+      // Com o Plano aberto em outra parte da tela, fica tudo na mesma tela.
+      if (cmpShows('plano')) {
+        renderCompare();
+        const pane = $('tab-plano').closest('.cmp-pane');
+        if (pane) pane.scrollTop = 0;
+        return;
+      }
       setTab('plano');
       window.scrollTo(0, 0);
     });
@@ -2440,6 +2656,199 @@
     }
     host.replaceChildren(svg);
   }
+
+  // ======================= CONFIGURAÇÕES =======================
+  // Submenu Menus: nome e ordem de cada menu da barra. Submenu Aparência: tema.
+  const MENU_DEFAULT_NAMES = Object.fromEntries(MENU_IDS.map((id) => [id, $(`t-${id}`).querySelector('span').textContent]));
+  ui.menus = KS.normalizeMenus(ui.menus, MENU_IDS);
+  let setSub = 'menus';
+
+  function menuOrder() { return ui.menus.order; }
+  function menuName(id) { return ui.menus.names[id] || MENU_DEFAULT_NAMES[id]; }
+
+  /** Põe os botões da barra na ordem escolhida e com os nomes da equipe. */
+  function applyMenus() {
+    const nav = document.querySelector('.tabs');
+    for (const id of menuOrder()) {
+      const b = $(`t-${id}`);
+      b.querySelector('span').textContent = menuName(id);
+      nav.appendChild(b);
+    }
+  }
+  applyMenus();
+
+  $('btnConfig').addEventListener('click', () => setTab(ui.tab === 'config' ? prevTab : 'config'));
+  $('setNav').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sub]');
+    if (!b) return;
+    setSub = b.dataset.sub;
+    renderConfig();
+  });
+
+  function renderConfig() {
+    for (const b of $('setNav').querySelectorAll('[data-sub]')) {
+      b.setAttribute('aria-current', b.dataset.sub === setSub ? 'page' : 'false');
+    }
+    $('set-menus').hidden = setSub !== 'menus';
+    $('set-aparencia').hidden = setSub !== 'aparencia';
+    if (setSub === 'menus') renderMenuEditor();
+    renderThemeOptions();
+  }
+
+  function renderMenuEditor(focusSel) {
+    const order = menuOrder();
+    $('setMenuList').replaceChildren(...order.map((id, i) => {
+      const li = mkEl('li', 'menu-row');
+      li.dataset.id = id;
+      const grip = mkEl('button', 'drag-handle');
+      grip.type = 'button';
+      grip.dataset.id = id;
+      grip.setAttribute('aria-label', `Mover ${menuName(id)}. Arraste, ou use as setas para cima e para baixo.`);
+      const icon = $(`t-${id}`).querySelector('svg').cloneNode(true);
+      icon.classList.add('menu-ico');
+      const input = mkEl('input', 'menu-input');
+      input.type = 'text';
+      input.maxLength = KS.MENU_NAME_MAX;
+      input.id = `set-name-${id}`;
+      input.dataset.id = id;
+      input.value = ui.menus.names[id] || '';
+      input.placeholder = MENU_DEFAULT_NAMES[id];
+      input.setAttribute('aria-label', `Nome do menu ${MENU_DEFAULT_NAMES[id]}`);
+      const up = mkEl('button', 'menu-move', '↑');
+      up.type = 'button';
+      up.dataset.id = id;
+      up.dataset.dir = '-1';
+      up.disabled = i === 0;
+      up.setAttribute('aria-label', `Subir ${menuName(id)}`);
+      const down = mkEl('button', 'menu-move', '↓');
+      down.type = 'button';
+      down.dataset.id = id;
+      down.dataset.dir = '1';
+      down.disabled = i === order.length - 1;
+      down.setAttribute('aria-label', `Descer ${menuName(id)}`);
+      li.append(grip, mkEl('span', 'menu-pos', `${i + 1}º`), icon, input, up, down);
+      return li;
+    }));
+    if (focusSel) {
+      const el = $('setMenuList').querySelector(focusSel);
+      if (el && !el.disabled) el.focus();
+    }
+  }
+
+  function moveMenu(id, to, focusSel) {
+    const from = menuOrder().indexOf(id);
+    if (from < 0 || to === from || to < 0 || to >= MENU_IDS.length) return;
+    ui.menus.order = KS.moveItem(menuOrder(), from, to);
+    applyMenus();
+    save();
+    renderMenuEditor(focusSel);
+    $('setMenusStatus').textContent = `${menuName(id)} agora é o ${to + 1}º menu.`;
+  }
+
+  const menuList = $('setMenuList');
+  menuList.addEventListener('input', (e) => {
+    const id = e.target.dataset.id;
+    if (!id || !e.target.matches('.menu-input')) return;
+    const v = e.target.value.replace(/\s+/g, ' ').trim();
+    if (v && v !== MENU_DEFAULT_NAMES[id]) ui.menus.names[id] = v;
+    else delete ui.menus.names[id];
+    applyMenus();
+    save();
+    $('setMenusStatus').textContent = '';
+  });
+  menuList.addEventListener('click', (e) => {
+    const b = e.target.closest('.menu-move');
+    if (!b || b.disabled) return;
+    const id = b.dataset.id;
+    const dir = Number(b.dataset.dir);
+    const to = menuOrder().indexOf(id) + dir;
+    // Mantém o foco na mesma seta; na ponta da lista, passa para a outra.
+    const other = dir < 0 ? '1' : '-1';
+    const atEdge = to === 0 || to === MENU_IDS.length - 1;
+    moveMenu(id, to, `.menu-move[data-id="${id}"][data-dir="${atEdge ? other : b.dataset.dir}"]`);
+  });
+  menuList.addEventListener('keydown', (e) => {
+    const g = e.target.closest('.drag-handle');
+    if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    const id = g.dataset.id;
+    moveMenu(id, menuOrder().indexOf(id) + (e.key === 'ArrowUp' ? -1 : 1), `.drag-handle[data-id="${id}"]`);
+  });
+
+  // Arrastar pela alça: funciona com mouse e com o dedo (eventos de ponteiro).
+  menuList.addEventListener('pointerdown', (e) => {
+    const grip = e.target.closest('.drag-handle');
+    if (!grip || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    e.preventDefault();
+    const row = grip.closest('.menu-row');
+    const rows = [...menuList.children];
+    const rects = rows.map((r) => r.getBoundingClientRect());
+    const from = rows.indexOf(row);
+    const step = rows.length > 1 ? rects[1].top - rects[0].top : rects[0].height;
+    const startY = e.clientY;
+    let to = from;
+    try { grip.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
+    menuList.classList.add('is-dragging');
+    row.classList.add('dragging');
+    const onMove = (ev) => {
+      const dy = ev.clientY - startY;
+      const min = rects[0].top - rects[from].top;
+      const max = rects[rects.length - 1].top - rects[from].top;
+      const y = Math.max(min - step / 2, Math.min(max + step / 2, dy));
+      row.style.transform = `translateY(${y}px)`;
+      to = Math.max(0, Math.min(rows.length - 1, from + Math.round(y / step)));
+      rows.forEach((r, k) => {
+        if (k === from) return;
+        const shift = from < to && k > from && k <= to ? -step : from > to && k >= to && k < from ? step : 0;
+        r.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
+    const onEnd = () => {
+      grip.removeEventListener('pointermove', onMove);
+      grip.removeEventListener('pointerup', onEnd);
+      grip.removeEventListener('pointercancel', onEnd);
+      menuList.classList.remove('is-dragging');
+      rows.forEach((r) => { r.style.transform = ''; r.classList.remove('dragging'); });
+      if (to !== from) moveMenu(row.dataset.id, to);
+    };
+    grip.addEventListener('pointermove', onMove);
+    grip.addEventListener('pointerup', onEnd);
+    grip.addEventListener('pointercancel', onEnd);
+  });
+
+  armed($('btnMenusReset'), () => {
+    ui.menus = KS.normalizeMenus(null, MENU_IDS);
+    applyMenus();
+    save();
+    renderMenuEditor();
+    $('setMenusStatus').textContent = 'Nomes e ordem dos menus voltaram ao padrão.';
+  });
+
+  function renderThemeOptions() {
+    const t = THEMES.includes(ui.theme) ? ui.theme : 'auto';
+    for (const b of $('setTheme').querySelectorAll('[data-theme-opt]')) {
+      const on = b.dataset.themeOpt === t;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+    }
+  }
+  $('setTheme').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme-opt]');
+    if (!b) return;
+    ui.theme = b.dataset.themeOpt;
+    applyTheme();
+    save();
+  });
+  $('setTheme').addEventListener('keydown', (e) => {
+    const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    const cur = THEMES.indexOf(THEMES.includes(ui.theme) ? ui.theme : 'auto');
+    ui.theme = THEMES[(cur + keys[e.key] + THEMES.length) % THEMES.length];
+    applyTheme();
+    save();
+    $('setTheme').querySelector(`[data-theme-opt="${ui.theme}"]`).focus();
+  });
 
   function boot() {
     fillForm();

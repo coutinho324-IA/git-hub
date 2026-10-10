@@ -410,3 +410,38 @@ test('comparar: classificação pelas voltas, com empate abaixo de meio segundo'
   near(r[3].secBehind, 96);
   assert.deepEqual(KS.rankByLaps([]), []);
 });
+
+test('comparar: tela dividida sozinha para n equipes', () => {
+  const ids = Array.from({ length: 12 }, (_, i) => KS.fitSplit(i + 1).id);
+  assert.deepEqual(ids, ['free', 'c2', 'c3', 'g4', 'auto', 'g6', 'auto', 'free', 'free', 'auto', 'auto', 'free']);
+  for (let n = 1; n <= 12; n++) {
+    const s = KS.fitSplit(n);
+    assert.equal(s.cells.length, n);
+    // Cada linha fica cheia: a soma das larguras é a grade inteira.
+    for (let r = 1; r <= s.rows; r++) {
+      const row = s.cells.filter((c) => c.row === r);
+      assert.equal(row.reduce((a, c) => a + c.colSpan, 0), s.cols, `n=${n}, linha ${r}`);
+    }
+  }
+  // 5 equipes: 3 em cima e 2 mais largas embaixo.
+  assert.deepEqual(KS.fitSplit(5).cells.map((c) => [c.row, c.colSpan]), [[1, 2], [1, 2], [1, 2], [2, 3], [2, 3]]);
+  assert.equal(KS.splitCells('auto', 0, 0, 7).cells.length, 7);
+  assert.equal(KS.fitSplit(40).cells.length, 12);
+});
+
+test('configurações: nome e ordem dos menus', () => {
+  const ids = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
+  const d = KS.normalizeMenus(null, ids);
+  assert.deepEqual(d.order, ids);
+  assert.deepEqual(d.names, {});
+  // Ordem salva com id repetido, id que não existe e menu faltando.
+  const m = KS.normalizeMenus({ order: ['vivo', 'vivo', 'xx', 'plano'], names: { vivo: '  Box   ao vivo ', plano: '', xx: 'Nada' } }, ids);
+  assert.deepEqual(m.order, ['vivo', 'plano', 'equipes', 'comparar', 'analise', 'manual']);
+  assert.deepEqual(m.names, { vivo: 'Box ao vivo' });
+  assert.equal(KS.normalizeMenus({ names: { manual: 'x'.repeat(40) } }, ids).names.manual.length, KS.MENU_NAME_MAX);
+  // Arrastar: tira da posição e coloca na nova, sem mexer na lista original.
+  assert.deepEqual(KS.moveItem(ids, 5, 0), ['manual', 'equipes', 'plano', 'comparar', 'vivo', 'analise']);
+  assert.deepEqual(KS.moveItem(ids, 0, 2), ['plano', 'comparar', 'equipes', 'vivo', 'analise', 'manual']);
+  assert.deepEqual(KS.moveItem(ids, 1, 99).at(-1), 'plano');
+  assert.deepEqual(ids[0], 'equipes');
+});

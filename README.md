@@ -7,16 +7,29 @@ App de estratégia para endurance de kart da equipe **Aristeu Just Motors**.
 - **Volta média (treino):** Kaka 48,05 s · Guilherme Coutinho 48,40 s
 - **Regra:** 3 paradas obrigatórias, com 5 minutos de permanência no box em cada uma
 
-O app roda no navegador do celular, sem instalação e sem internet depois de aberto. O botão no topo troca a cor da tela: **Automático** (segue o celular), **Claro** ou **Escuro**. Ele tem seis abas:
+O app roda no navegador do celular, sem instalação e sem internet depois de aberto. O botão no topo troca a cor da tela: **Automático** (segue o celular), **Claro** ou **Escuro**. A engrenagem abre as **Configurações**. O app tem seis abas:
 
 | Aba | Para que serve |
 |---|---|
 | **Equipes** | Cadastra, edita e exclui equipes: nome da equipe, oficina, quantidade de pilotos (1 a 6), nome e volta média de cada piloto. A equipe em uso alimenta o resto do app e guarda a própria escala de stints. |
 | **Plano** | Calcula stints, paradas, janelas e voltas estimadas. Todos os números do regulamento são editáveis. |
-| **Comparar** | Divide a tela em partes, cada uma com uma equipe e uma escala, para analisar as estratégias juntas e ver quem termina com mais voltas. |
+| **Comparar** | Divide a tela em partes e mostra tudo ao mesmo tempo: cada parte pode ter um menu do app (Plano, Ao vivo, Análise, Equipes, Manual) ou a estratégia de uma equipe. |
 | **Ao vivo** | Cronômetro da prova, o que mostrar na placa de box, contagem regressiva de 5:00 com bipes, alerta de janela de parada, bandeira amarela e queda de ritmo. Registrar voltas é opcional: as paradas são chamadas pelo relógio. |
 | **Análise** | Média, melhor volta e consistência de cada piloto, gráfico volta a volta e segundos perdidos em cada parada. |
 | **Manual** | Ficha de cada piloto, regras na pista, placa de box e roteiro da troca, com os números recalculados a partir da configuração. |
+
+## Configurações
+
+A engrenagem no topo abre as Configurações, com dois submenus:
+
+- **Menus:** muda o nome e a ordem dos menus da barra.
+  - Toque no nome para editar. Se deixar vazio, volta o nome padrão.
+  - Para mudar a ordem, segure a alça (os pontinhos) e arraste para cima ou para baixo. Funciona com o mouse e com o dedo. Também dá para usar as setas.
+  - A barra de menus muda na hora.
+  - **Restaurar nomes e ordem** volta tudo ao padrão.
+- **Aparência:** escolhe a cor da tela (Automático, Claro ou Escuro).
+
+Tocar na engrenagem de novo volta para a aba de antes. Tudo fica salvo no aparelho.
 
 ## Usar sem internet
 
@@ -112,7 +125,7 @@ As duas dão praticamente o mesmo total de voltas, porque cada piloto pilota qua
 
 ### Comparar estratégias na tela dividida
 
-A aba **Comparar** mostra várias equipes ao mesmo tempo, uma em cada parte da tela. Escolha a divisão por uma das miniaturas:
+A aba **Comparar** divide a tela e mostra várias coisas ao mesmo tempo. Escolha a divisão por uma das miniaturas:
 
 | Modelo | Partes |
 |---|---|
@@ -124,7 +137,23 @@ A aba **Comparar** mostra várias equipes ao mesmo tempo, uma em cada parte da t
 | 6 partes | 3 × 2 |
 | Livre | você escolhe de 1 a 4 colunas e de 1 a 3 linhas (até 12 partes) |
 
-Em cada parte você escolhe a **equipe** e a **escala**:
+Em **Equipes na tela**, marque quais equipes quer ver juntas. O contador mostra quantas estão na tela (por exemplo, "3 de 5"):
+
+- Marcar uma equipe acrescenta uma parte.
+- Desmarcar tira a parte dessa equipe.
+- **Todas** mostra todas as equipes cadastradas.
+- **+ Cadastrar equipe** abre o cadastro.
+
+A cada mudança, a tela se divide sozinha em partes do mesmo tamanho, até 12. Quando a última linha tem menos partes, elas ficam mais largas para ocupar a linha toda.
+
+No primeiro seletor de cada parte você escolhe **o que ela mostra**:
+
+- **Um menu do app:** Plano, Ao vivo, Análise, Equipes ou Manual. Funciona igual à aba: dá para editar o Plano, rodar o cronômetro e registrar voltas. Exemplos: Plano de um lado e Ao vivo do outro, ou Ao vivo grande com duas estratégias ao lado (modelo 1 grande + 2).
+- **Estratégia de equipe:** pode aparecer em quantas partes quiser.
+
+Cada menu aparece numa parte só. Se você escolher um menu que já está em outra parte, as duas trocam de lugar.
+
+Na estratégia de equipe, escolha a **equipe** e a **escala**:
 
 - **Escala da equipe:** a que está salva para ela.
 - **Fulano abre:** o piloto escolhido larga e os outros revezam.

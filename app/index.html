@@ -27,6 +27,10 @@
     </div>
     <div class="topbar-right">
       <span class="net-chip" id="netChip" hidden>Sem sinal</span>
+      <button type="button" class="theme-btn config-btn" id="btnConfig" aria-pressed="false" title="Configurações">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.05 10.11L21.70 10.64L21.70 13.36L19.05 13.89L18.32 15.65L19.83 17.90L17.90 19.83L15.65 18.32L13.89 19.05L13.36 21.70L10.64 21.70L10.11 19.05L8.35 18.32L6.10 19.83L4.17 17.90L5.68 15.65L4.95 13.89L2.30 13.36L2.30 10.64L4.95 10.11L5.68 8.35L4.17 6.10L6.10 4.17L8.35 5.68L10.11 4.95L10.64 2.30L13.36 2.30L13.89 4.95L15.65 5.68L17.90 4.17L19.83 6.10L18.32 8.35Z"/><circle cx="12" cy="12" r="3.2"/></svg>
+        <span class="theme-label">Configurações</span>
+      </button>
       <button type="button" class="theme-btn" id="btnTheme" aria-label="Tema: automático" title="Tema: automático">
         <svg class="ico-auto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg>
         <svg class="ico-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
@@ -202,7 +206,7 @@
   <section id="tab-comparar" class="panel compare" role="tabpanel" aria-labelledby="t-comparar" hidden>
     <div class="panel-head">
       <h1>Comparar estratégias</h1>
-      <p class="lede">Divida a tela e escolha a equipe e a escala de cada parte. Todas seguem as regras da prova do Plano, então dá para ver quem termina com mais voltas.</p>
+      <p class="lede">Divida a tela e escolha o que cada parte mostra, tudo ao mesmo tempo: um menu do app (Plano, Ao vivo, Análise, Equipes, Manual) ou a estratégia de uma equipe. As estratégias seguem as regras da prova do Plano, então dá para ver quem termina com mais voltas.</p>
     </div>
     <div class="card cmp-bar">
       <div class="cmp-bar-main">
@@ -215,6 +219,10 @@
           <label class="field"><span>Linhas</span><select id="cmpRows"></select></label>
         </div>
         <button type="button" class="btn btn-ghost" id="btnCmpFull">Tela cheia</button>
+      </div>
+      <div class="cmp-bar-teams">
+        <span class="eyebrow" id="cmpTeamsLabel">Equipes na tela <b id="cmpTeamCount"></b></span>
+        <div class="cmp-chips" id="cmpTeamChips" role="group" aria-labelledby="cmpTeamsLabel"></div>
       </div>
     </div>
     <p class="hint cmp-phone-hint">No celular as partes ficam uma embaixo da outra. Para ver lado a lado, use o notebook ou o celular deitado.</p>
@@ -518,6 +526,44 @@
       </ul>
       <p class="hint">Lance esses números no Plano. O app recalcula janelas, prazos, voltas e as fichas dos pilotos.</p>
     </article>
+  </section>
+
+  <!-- ============ CONFIGURAÇÕES ============ -->
+  <section id="tab-config" class="panel" aria-labelledby="setTitle" hidden>
+    <div class="panel-head">
+      <h1 id="setTitle">Configurações</h1>
+      <p class="lede">Deixe o app do jeito da equipe. Fica salvo neste aparelho.</p>
+    </div>
+    <div class="set-layout">
+      <nav class="card set-nav" id="setNav" aria-label="Seções das configurações">
+        <button type="button" data-sub="menus" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menus</span>
+        </button>
+        <button type="button" data-sub="aparencia">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg><span>Aparência</span>
+        </button>
+      </nav>
+      <div class="set-pages">
+        <section class="card set-page" id="set-menus" aria-labelledby="setMenusTitle">
+          <div class="card-head">
+            <h2 id="setMenusTitle">Menus</h2>
+            <button type="button" class="btn btn-ghost" id="btnMenusReset" data-confirm="Toque de novo para restaurar">Restaurar nomes e ordem</button>
+          </div>
+          <p class="hint">Toque no nome para editar. Segure a alça <span class="grip-inline" aria-hidden="true"></span> e arraste para cima ou para baixo para mudar a ordem, ou use as setas. A barra de menus muda na hora.</p>
+          <ol class="menu-list" id="setMenuList"></ol>
+          <p class="hint" id="setMenusStatus" role="status"></p>
+        </section>
+        <section class="card set-page" id="set-aparencia" aria-labelledby="setLookTitle" hidden>
+          <div class="card-head"><h2 id="setLookTitle">Aparência</h2></div>
+          <p class="hint">Cor da tela. Automático segue o aparelho.</p>
+          <div class="seg" id="setTheme" role="radiogroup" aria-labelledby="setLookTitle">
+            <button type="button" role="radio" data-theme-opt="auto">Automático</button>
+            <button type="button" role="radio" data-theme-opt="light">Claro</button>
+            <button type="button" role="radio" data-theme-opt="dark">Escuro</button>
+          </div>
+        </section>
+      </div>
+    </div>
   </section>
 </main>
 
