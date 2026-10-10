@@ -81,6 +81,34 @@ Kaka é 0,35 s por volta mais rápido, então faz stints de 30 min e o Guilherme
 - **Folga:** cada parada do Kaka fica 5 min antes do prazo. Assim sobra janela para aproveitar uma amarela ou atrasar se o piloto estiver bem.
 - **Botão Otimizar pelo ritmo:** leva o Kaka até cerca de 32,5 min por stint (≈ 5,7 s de ganho). Sempre sobram 3 voltas de janela antes do prazo, mas os stints longos cansam mais.
 
+### Meta para chegar na frente
+
+Na aba Plano, informe o **menor tempo da pista**, que pode ser o recorde ou a melhor volta da classificação. Informe também quanto as equipes da frente andam acima dele, em média. Por padrão o app usa 47,60 s e +0,80 s, que são valores de exemplo para trocar pelos reais.
+
+Com isso o app mostra:
+
+- **O ritmo estimado das equipes da frente:** 47,60 + 0,80 = 48,40 s por volta, cerca de 129,3 voltas.
+- **Onde vocês terminam com os tempos atuais:** cerca de 0,5 volta (26 s) à frente.
+- **O tempo máximo de cada piloto para ainda chegar na frente:**
+
+| Piloto | Ritmo | vs menor tempo | Máximo p/ chegar na frente | vs menor tempo |
+|---|---|---|---|---|
+| Kaka | 48,05 s | +0,45 s | **48,25 s** | +0,65 s |
+| Guilherme | 48,40 s | +0,80 s | **48,60 s** | +1,00 s |
+
+A mesma meta aparece na ficha de cada piloto (aba Manual) e embaixo do nome do piloto na aba Ao vivo.
+
+### Quem abre a prova: estratégias A e B
+
+| | Estratégia A: Kaka abre | Estratégia B: Guilherme abre |
+|---|---|---|
+| Stints | Kaka 0:00–30:00 · Guilherme 35:14–57:23 · Kaka 1:02:37–1:32:37 · Guilherme 1:37:50–2:00 | Guilherme 0:00–22:10 · Kaka 27:23–57:23 · Guilherme 1:02:37–1:24:47 · Kaka 1:30:00–2:00 |
+| Box nas voltas | 37, 65, 102 | 27, 65, 92 |
+| Quem fecha | Guilherme | Kaka (o mais rápido defende ou ganha posição no fim) |
+| Voltas | 129,9 | 129,9 |
+
+As duas dão o mesmo total de voltas, porque cada piloto pilota o mesmo tempo. O que muda é quem enfrenta a largada, quem fecha a prova e em que voltas são as paradas. Escolha com o botão **Usar esta estratégia** na aba Plano.
+
 ### Estratégia só com os dois pilotos
 
 A equipe corre contra o relógio, não contra as outras equipes. Ninguém precisa acompanhar rivais: o plano é fixo, o app diz quando parar e o piloto que está descansando cuida do relógio e da placa.
