@@ -612,7 +612,7 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
 @media (max-width: 760px) {
   .tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; max-width: none;
-    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px;
     padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
     background: var(--board); border-top: 1px solid var(--board-2); box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
   }
@@ -761,7 +761,6 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   .cmp-pane { grid-area: auto !important; overflow: visible; }
   .cmp-head { position: static; border-radius: var(--radius) var(--radius) 0 0; }
   .cmp-model { width: calc((100% - 24px) / 4); min-width: 0; }
-  .tabs button { font-size: 0.625rem; letter-spacing: 0.02em; }
 }
 
 /* Menus do app dentro das partes da tela dividida. As regras de celular
@@ -838,24 +837,24 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
 .config-btn[aria-pressed="true"] { border-color: var(--board-hi); color: var(--board-hi); }
 @media (max-width: 900px) { .config-btn .theme-label { display: none; } .config-btn { width: 34px; padding: 0; justify-content: center; } }
 
-.set-layout { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: var(--gap); align-items: start; }
-.set-nav { padding: 8px; gap: 4px; }
+.set-layout { display: flex; flex-direction: column; gap: var(--gap); }
+.set-nav { flex-direction: row; flex-wrap: wrap; padding: 6px; gap: 4px; }
 .set-nav button {
-  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 16px; cursor: pointer;
   border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink-2); text-align: left;
   font-family: var(--f-display); font-weight: 700; font-size: var(--step-0); text-transform: uppercase; letter-spacing: 0.05em;
 }
 .set-nav button:hover { background: var(--surface-2); color: var(--ink); }
-.set-nav button[aria-current="page"] { background: var(--accent-wash); color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.set-nav button[aria-current="page"] { background: var(--accent-wash); color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
 .set-nav svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .set-nav svg .fill { fill: currentColor; stroke: none; }
 .set-pages { min-width: 0; }
 @media (max-width: 760px) {
-  .set-layout { grid-template-columns: minmax(0, 1fr); }
-  .set-nav { flex-direction: row; }
-  .set-nav button { justify-content: center; }
-  .set-nav button[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--accent); }
+  .set-nav { flex-wrap: nowrap; }
+  .set-nav button { flex: 1 1 0; justify-content: center; padding: 8px 6px; font-size: 0.875rem; letter-spacing: 0.03em; min-width: 0; }
 }
+@media (max-width: 420px) { .set-nav svg { display: none; } }
+.compare:fullscreen .set-nav { display: none; }
 
 .menu-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .menu-row {

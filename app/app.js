@@ -4,10 +4,11 @@
 
   const KS = window.KartStrategy;
   const STORAGE_KEY = 'ajm-kart-v1';
-  // Menus da barra (a equipe escolhe nome e ordem em Configurações) e a
-  // página de configurações, aberta pela engrenagem do topo.
-  const MENU_IDS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
-  const TABS = [...MENU_IDS, 'config'];
+  // Menus da barra (a equipe escolhe nome e ordem em Configurações). Multi
+  // telas ('comparar') e as configurações abrem pela engrenagem do topo.
+  const MENU_IDS = ['equipes', 'plano', 'vivo', 'analise', 'manual'];
+  const SETTINGS_TABS = ['comparar', 'config'];
+  const TABS = [...MENU_IDS, ...SETTINGS_TABS];
   // Uma cor por posição do piloto no cadastro (até 6) e a cor do texto sobre ela.
   const PILOT_VARS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
   const PILOT_ON = ['#ffffff', '#111517', '#111517', '#111517', '#111517', '#ffffff'];
@@ -200,7 +201,7 @@
   let prevTab = 'plano';
   function setTab(tab) {
     if (!TABS.includes(tab)) tab = 'plano';
-    if (tab === 'config' && ui.tab !== 'config') prevTab = ui.tab;
+    if (SETTINGS_TABS.includes(tab) && MENU_IDS.includes(ui.tab)) prevTab = ui.tab;
     ui.tab = tab;
     document.body.dataset.tab = tab;
     if (tab !== 'comparar') undockAll();
@@ -213,7 +214,8 @@
     }
     // Em Configurações nenhum menu fica marcado; o primeiro continua alcançável pelo teclado.
     if (!MENU_IDS.includes(tab)) $(`t-${menuOrder()[0]}`).tabIndex = 0;
-    $('btnConfig').setAttribute('aria-pressed', String(tab === 'config'));
+    $('btnConfig').setAttribute('aria-pressed', String(SETTINGS_TABS.includes(tab)));
+    renderSubNav();
     try { history.replaceState(null, '', `#${tab}`); } catch (e) { /* ok */ }
     renderTab();
     save();
@@ -2677,18 +2679,32 @@
   }
   applyMenus();
 
-  $('btnConfig').addEventListener('click', () => setTab(ui.tab === 'config' ? prevTab : 'config'));
-  $('setNav').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-sub]');
-    if (!b) return;
-    setSub = b.dataset.sub;
-    renderConfig();
-  });
+  // Engrenagem: abre as configurações; tocada de novo, volta ao menu de antes.
+  $('btnConfig').addEventListener('click', () => setTab(SETTINGS_TABS.includes(ui.tab) ? prevTab : 'config'));
+
+  // Submenus (Menus, Multi telas, Aparência), repetidos no topo das duas telas.
+  for (const nav of document.querySelectorAll('[data-subnav]')) {
+    nav.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sub]');
+      if (!b) return;
+      if (b.dataset.sub === 'multi') {
+        setTab('comparar');
+        return;
+      }
+      setSub = b.dataset.sub;
+      if (ui.tab === 'config') renderConfig();
+      else setTab('config');
+    });
+  }
+  function renderSubNav() {
+    const cur = ui.tab === 'comparar' ? 'multi' : setSub;
+    for (const b of document.querySelectorAll('[data-subnav] [data-sub]')) {
+      b.setAttribute('aria-current', b.dataset.sub === cur ? 'page' : 'false');
+    }
+  }
 
   function renderConfig() {
-    for (const b of $('setNav').querySelectorAll('[data-sub]')) {
-      b.setAttribute('aria-current', b.dataset.sub === setSub ? 'page' : 'false');
-    }
+    renderSubNav();
     $('set-menus').hidden = setSub !== 'menus';
     $('set-aparencia').hidden = setSub !== 'aparencia';
     if (setSub === 'menus') renderMenuEditor();
