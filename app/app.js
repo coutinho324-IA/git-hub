@@ -1411,6 +1411,63 @@
     if (ui.tab === 'plano' && now - lastPlanTick > 5000) { lastPlanTick = now; renderTimeline(); }
   }, 250);
 
+  // ======================= SEM INTERNET =======================
+  const PAGES_URL = 'https://coutinho324-ia.github.io/git-hub/';
+
+  function setupOffline() {
+    const status = $('offlineStatus');
+    const setStatus = (state, text, link) => {
+      status.dataset.state = state;
+      status.replaceChildren(document.createTextNode(text));
+      if (link) {
+        const a = document.createElement('a');
+        a.href = link;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.textContent = link.replace(/^https:\/\//, '');
+        status.append(' ', a);
+      }
+    };
+    const updateNet = () => { $('netChip').hidden = navigator.onLine !== false; };
+    window.addEventListener('online', updateNet);
+    window.addEventListener('offline', updateNet);
+    updateNet();
+
+    const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent || '');
+    $('iosHint').hidden = !ios || standalone;
+
+    let deferred = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferred = e;
+      $('btnInstall').hidden = false;
+    });
+    $('btnInstall').addEventListener('click', async () => {
+      if (!deferred) return;
+      deferred.prompt();
+      try { await deferred.userChoice; } catch (e) { /* ok */ }
+      deferred = null;
+      $('btnInstall').hidden = true;
+    });
+    window.addEventListener('appinstalled', () => {
+      $('btnInstall').hidden = true;
+      setStatus('ready', 'Instalado. Abra pelo ícone Box AJM, com ou sem internet.');
+    });
+
+    const canCache = 'serviceWorker' in navigator && /^https?:$/.test(location.protocol);
+    if (!canCache) {
+      setStatus('unsupported', 'Este endereço não guarda o app no aparelho. Para usar sem internet, abra e instale pelo link:', PAGES_URL);
+      return;
+    }
+    navigator.serviceWorker.register('sw.js')
+      .then(() => navigator.serviceWorker.ready)
+      .then(() => setStatus('ready', standalone
+        ? 'Pronto para usar sem internet.'
+        : 'Pronto para usar sem internet. Instale na tela inicial para abrir pelo ícone.'))
+      .catch(() => setStatus('unsupported', 'Este endereço não guarda o app no aparelho. Para usar sem internet, abra e instale pelo link:', PAGES_URL));
+  }
+
   function boot() {
     fillForm();
     renderHeader();
@@ -1423,6 +1480,7 @@
     fillPilotSelect($('lvStarter'), cfg.order[0]);
     setTab(tab);
     renderLive(true);
+    setupOffline();
     if (started() && race.frozenElapsed == null) keepAwake();
   }
   boot();
