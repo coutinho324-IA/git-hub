@@ -638,3 +638,8 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
 .theme-btn svg .fill { fill: currentColor; stroke: none; }
 .theme-btn[data-theme="auto"] .ico-auto, .theme-btn[data-theme="light"] .ico-light, .theme-btn[data-theme="dark"] .ico-dark { display: block; }
 @media (max-width: 420px) { .theme-label { display: none; } .theme-btn { width: 34px; padding: 0; justify-content: center; } }
+
+/* Prova encerrada / exemplo */
+.race-over { border: 2px solid var(--accent); }
+.race-over .btn-go { width: 100%; }
+.race-over .btn-go[data-armed="true"] { background: var(--crit); border-color: var(--crit); font-size: var(--step-1); }

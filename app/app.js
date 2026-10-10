@@ -854,6 +854,25 @@
     sel.value = cfg.pilots.some((p) => p.id === want) ? want : cfg.pilots[0].id;
   }
 
+  // Nova corrida: no exemplo começa direto; numa prova real pede um segundo toque.
+  let newRaceTimer = null;
+  $('btnNewRace').addEventListener('click', () => {
+    const btn = $('btnNewRace');
+    if (!race.example && btn.dataset.armed !== 'true') {
+      btn.dataset.armed = 'true';
+      btn.textContent = 'Toque de novo para apagar e começar';
+      clearTimeout(newRaceTimer);
+      newRaceTimer = setTimeout(() => { btn.dataset.armed = 'false'; btn.textContent = 'Nova corrida'; }, 4000);
+      return;
+    }
+    clearTimeout(newRaceTimer);
+    btn.dataset.armed = 'false';
+    btn.textContent = 'Nova corrida';
+    race = newRace();
+    save();
+    renderLive(true);
+  });
+
   $('btnStart').addEventListener('click', () => {
     initAudio();
     race = newRace();
@@ -999,6 +1018,16 @@
     $('lvPre').hidden = isStarted;
     $('lvTrack').hidden = !isStarted || inPit;
     $('lvPit').hidden = !inPit;
+
+    // Prova encerrada ou exemplo: o caminho para começar outra fica em destaque.
+    const over = isStarted && !inPit && (finished || race.example);
+    $('lvOver').hidden = !over;
+    if (over) {
+      $('lvOverTitle').textContent = race.example ? 'Corrida de exemplo carregada' : 'Prova encerrada';
+      $('lvOverText').textContent = race.example
+        ? 'Esta é a corrida simulada da aba Análise. Toque em Nova corrida para usar o cronômetro de verdade.'
+        : 'Os tempos desta prova continuam na aba Análise até você começar uma nova.';
+    }
 
     if (!isStarted) {
       const sel = $('lvStarter');

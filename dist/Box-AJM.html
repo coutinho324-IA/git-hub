@@ -719,6 +719,11 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
 .theme-btn[data-theme="auto"] .ico-auto, .theme-btn[data-theme="light"] .ico-light, .theme-btn[data-theme="dark"] .ico-dark { display: block; }
 @media (max-width: 420px) { .theme-label { display: none; } .theme-btn { width: 34px; padding: 0; justify-content: center; } }
 
+/* Prova encerrada / exemplo */
+.race-over { border: 2px solid var(--accent); }
+.race-over .btn-go { width: 100%; }
+.race-over .btn-go[data-armed="true"] { background: var(--crit); border-color: var(--crit); font-size: var(--step-1); }
+
 </style>
 </head>
 <body>
@@ -923,8 +928,8 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
         <div id="lvPre" class="card pre-start">
           <h2>Grid</h2>
           <label class="field"><span>Quem larga</span><select id="lvStarter"></select></label>
-          <p class="hint">O cronômetro roda pelo relógio do aparelho. Deixe a tela ligada e toque em largar junto com a bandeira verde.</p>
-          <button type="button" class="btn btn-go" id="btnStart">Largar</button>
+          <p class="hint">O cronômetro roda pelo relógio do aparelho. Deixe a tela ligada e toque em Iniciar prova junto com a bandeira verde.</p>
+          <button type="button" class="btn btn-go" id="btnStart">Iniciar prova</button>
           <div class="offline-box" id="offlineBox">
             <p id="offlineStatus" data-state="checking">Verificando uso sem internet…</p>
             <p class="storage-warn" id="storageWarn" hidden>Este aparelho não está salvando os dados do app. Não feche nem recarregue a página durante a prova.</p>
@@ -934,6 +939,13 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
         </div>
 
         <!-- Pista -->
+        <!-- Prova encerrada ou corrida de exemplo: botão para começar outra -->
+        <div id="lvOver" class="card race-over" hidden>
+          <h2 id="lvOverTitle">Prova encerrada</h2>
+          <p class="hint" id="lvOverText"></p>
+          <button type="button" class="btn btn-go" id="btnNewRace">Nova corrida</button>
+        </div>
+
         <div id="lvTrack" hidden>
           <div class="driver card">
             <div class="driver-id">
@@ -2824,6 +2836,25 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
     sel.value = cfg.pilots.some((p) => p.id === want) ? want : cfg.pilots[0].id;
   }
 
+  // Nova corrida: no exemplo começa direto; numa prova real pede um segundo toque.
+  let newRaceTimer = null;
+  $('btnNewRace').addEventListener('click', () => {
+    const btn = $('btnNewRace');
+    if (!race.example && btn.dataset.armed !== 'true') {
+      btn.dataset.armed = 'true';
+      btn.textContent = 'Toque de novo para apagar e começar';
+      clearTimeout(newRaceTimer);
+      newRaceTimer = setTimeout(() => { btn.dataset.armed = 'false'; btn.textContent = 'Nova corrida'; }, 4000);
+      return;
+    }
+    clearTimeout(newRaceTimer);
+    btn.dataset.armed = 'false';
+    btn.textContent = 'Nova corrida';
+    race = newRace();
+    save();
+    renderLive(true);
+  });
+
   $('btnStart').addEventListener('click', () => {
     initAudio();
     race = newRace();
@@ -2969,6 +3000,16 @@ table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
     $('lvPre').hidden = isStarted;
     $('lvTrack').hidden = !isStarted || inPit;
     $('lvPit').hidden = !inPit;
+
+    // Prova encerrada ou exemplo: o caminho para começar outra fica em destaque.
+    const over = isStarted && !inPit && (finished || race.example);
+    $('lvOver').hidden = !over;
+    if (over) {
+      $('lvOverTitle').textContent = race.example ? 'Corrida de exemplo carregada' : 'Prova encerrada';
+      $('lvOverText').textContent = race.example
+        ? 'Esta é a corrida simulada da aba Análise. Toque em Nova corrida para usar o cronômetro de verdade.'
+        : 'Os tempos desta prova continuam na aba Análise até você começar uma nova.';
+    }
 
     if (!isStarted) {
       const sel = $('lvStarter');
