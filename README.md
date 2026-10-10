@@ -7,7 +7,7 @@ App de estratégia para endurance de kart da equipe **Aristeu Just Motors**.
 - **Volta média (treino):** Kaka 48,05 s · Guilherme Coutinho 48,40 s
 - **Regra:** 3 paradas obrigatórias, com 5 minutos de permanência no box em cada uma
 
-O app roda no navegador do celular, sem instalação e sem internet depois de aberto. O botão no topo troca a cor da tela: **Automático** (segue o celular), **Claro** ou **Escuro**. Ele tem seis abas:
+O app roda no navegador do celular, sem instalação e sem internet depois de aberto. O botão no topo troca a cor da tela: **Automático** (segue o celular), **Claro** ou **Escuro**. A engrenagem abre as **Configurações**. O app tem seis abas:
 
 | Aba | Para que serve |
 |---|---|
@@ -17,6 +17,19 @@ O app roda no navegador do celular, sem instalação e sem internet depois de ab
 | **Ao vivo** | Cronômetro da prova, o que mostrar na placa de box, contagem regressiva de 5:00 com bipes, alerta de janela de parada, bandeira amarela e queda de ritmo. Registrar voltas é opcional: as paradas são chamadas pelo relógio. |
 | **Análise** | Média, melhor volta e consistência de cada piloto, gráfico volta a volta e segundos perdidos em cada parada. |
 | **Manual** | Ficha de cada piloto, regras na pista, placa de box e roteiro da troca, com os números recalculados a partir da configuração. |
+
+## Configurações
+
+A engrenagem no topo abre as Configurações, com dois submenus:
+
+- **Menus:** muda o nome e a ordem dos menus da barra.
+  - Toque no nome para editar. Se deixar vazio, volta o nome padrão.
+  - Para mudar a ordem, segure a alça (os pontinhos) e arraste para cima ou para baixo. Funciona com o mouse e com o dedo. Também dá para usar as setas.
+  - A barra de menus muda na hora.
+  - **Restaurar nomes e ordem** volta tudo ao padrão.
+- **Aparência:** escolhe a cor da tela (Automático, Claro ou Escuro).
+
+Tocar na engrenagem de novo volta para a aba de antes. Tudo fica salvo no aparelho.
 
 ## Usar sem internet
 

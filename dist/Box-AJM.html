@@ -910,6 +910,81 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
 .compare:fullscreen .cmp-chip { min-height: 30px; padding: 3px 10px; }
 .compare:fullscreen .cmp-chip[aria-pressed="true"]::after { left: 16px; }
 
+/* =================================================================
+   Configurações: engrenagem no topo, submenus à esquerda e a lista de
+   menus para renomear e arrastar.
+   ================================================================= */
+.config-btn svg { display: block; }
+.config-btn[aria-pressed="true"] { border-color: var(--board-hi); color: var(--board-hi); }
+@media (max-width: 900px) { .config-btn .theme-label { display: none; } .config-btn { width: 34px; padding: 0; justify-content: center; } }
+
+.set-layout { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: var(--gap); align-items: start; }
+.set-nav { padding: 8px; gap: 4px; }
+.set-nav button {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 8px 12px; cursor: pointer;
+  border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--ink-2); text-align: left;
+  font-family: var(--f-display); font-weight: 700; font-size: var(--step-0); text-transform: uppercase; letter-spacing: 0.05em;
+}
+.set-nav button:hover { background: var(--surface-2); color: var(--ink); }
+.set-nav button[aria-current="page"] { background: var(--accent-wash); color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.set-nav svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.set-nav svg .fill { fill: currentColor; stroke: none; }
+.set-pages { min-width: 0; }
+@media (max-width: 760px) {
+  .set-layout { grid-template-columns: minmax(0, 1fr); }
+  .set-nav { flex-direction: row; }
+  .set-nav button { justify-content: center; }
+  .set-nav button[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--accent); }
+}
+
+.menu-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.menu-row {
+  display: grid; grid-template-columns: 44px 30px 22px minmax(0, 1fr) 40px 40px; align-items: center; gap: 8px;
+  padding: 6px 8px 6px 4px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.menu-list.is-dragging .menu-row { user-select: none; -webkit-user-select: none; }
+.menu-row.dragging {
+  position: relative; z-index: 2; transition: none; background: var(--surface);
+  border-color: var(--accent); box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+.drag-handle {
+  width: 44px; height: 44px; padding: 13px 16px; box-sizing: border-box; border: 0; border-radius: var(--radius-sm);
+  cursor: grab; touch-action: none; background: radial-gradient(circle, var(--muted) 1.5px, transparent 1.9px) 0 0 / 6px 6px repeat content-box;
+}
+.drag-handle:hover { background-color: var(--surface); }
+.menu-row.dragging .drag-handle { cursor: grabbing; }
+.grip-inline {
+  display: inline-block; width: 10px; height: 14px; vertical-align: -2px;
+  background: radial-gradient(circle, var(--muted) 1.4px, transparent 1.7px) 0 0 / 5px 5px;
+}
+.menu-pos { font-family: var(--f-display); font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; text-align: center; }
+.menu-ico { width: 20px; height: 20px; fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.menu-input {
+  width: 100%; min-width: 0; min-height: 42px; padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); font-family: var(--f-display); font-weight: 700; font-size: var(--step-0); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.menu-input::placeholder { color: var(--ink-2); opacity: 1; }
+.menu-input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-wash); }
+.menu-move {
+  width: 40px; height: 40px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface);
+  color: var(--ink); cursor: pointer; font-size: 1.125rem; font-weight: 700;
+}
+.menu-move:hover:not(:disabled) { border-color: var(--muted); }
+.menu-move:disabled { opacity: 0.35; cursor: default; }
+@media (max-width: 420px) {
+  .menu-row { grid-template-columns: 40px 22px minmax(0, 1fr) 36px 36px; gap: 6px; }
+  .menu-pos { display: none; }
+  .menu-move { width: 36px; height: 36px; }
+}
+
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); align-self: flex-start; }
+.seg button {
+  min-height: 40px; padding: 6px 16px; border: 0; border-radius: 6px; background: transparent; color: var(--ink-2); cursor: pointer;
+  font-family: var(--f-display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.seg button[aria-checked="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--accent); }
+
 </style>
 </head>
 <body>
@@ -924,6 +999,10 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     </div>
     <div class="topbar-right">
       <span class="net-chip" id="netChip" hidden>Sem sinal</span>
+      <button type="button" class="theme-btn config-btn" id="btnConfig" aria-pressed="false" title="Configurações">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.05 10.11L21.70 10.64L21.70 13.36L19.05 13.89L18.32 15.65L19.83 17.90L17.90 19.83L15.65 18.32L13.89 19.05L13.36 21.70L10.64 21.70L10.11 19.05L8.35 18.32L6.10 19.83L4.17 17.90L5.68 15.65L4.95 13.89L2.30 13.36L2.30 10.64L4.95 10.11L5.68 8.35L4.17 6.10L6.10 4.17L8.35 5.68L10.11 4.95L10.64 2.30L13.36 2.30L13.89 4.95L15.65 5.68L17.90 4.17L19.83 6.10L18.32 8.35Z"/><circle cx="12" cy="12" r="3.2"/></svg>
+        <span class="theme-label">Configurações</span>
+      </button>
       <button type="button" class="theme-btn" id="btnTheme" aria-label="Tema: automático" title="Tema: automático">
         <svg class="ico-auto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg>
         <svg class="ico-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
@@ -1419,6 +1498,44 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
       </ul>
       <p class="hint">Lance esses números no Plano. O app recalcula janelas, prazos, voltas e as fichas dos pilotos.</p>
     </article>
+  </section>
+
+  <!-- ============ CONFIGURAÇÕES ============ -->
+  <section id="tab-config" class="panel" aria-labelledby="setTitle" hidden>
+    <div class="panel-head">
+      <h1 id="setTitle">Configurações</h1>
+      <p class="lede">Deixe o app do jeito da equipe. Fica salvo neste aparelho.</p>
+    </div>
+    <div class="set-layout">
+      <nav class="card set-nav" id="setNav" aria-label="Seções das configurações">
+        <button type="button" data-sub="menus" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menus</span>
+        </button>
+        <button type="button" data-sub="aparencia">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg><span>Aparência</span>
+        </button>
+      </nav>
+      <div class="set-pages">
+        <section class="card set-page" id="set-menus" aria-labelledby="setMenusTitle">
+          <div class="card-head">
+            <h2 id="setMenusTitle">Menus</h2>
+            <button type="button" class="btn btn-ghost" id="btnMenusReset" data-confirm="Toque de novo para restaurar">Restaurar nomes e ordem</button>
+          </div>
+          <p class="hint">Toque no nome para editar. Segure a alça <span class="grip-inline" aria-hidden="true"></span> e arraste para cima ou para baixo para mudar a ordem, ou use as setas. A barra de menus muda na hora.</p>
+          <ol class="menu-list" id="setMenuList"></ol>
+          <p class="hint" id="setMenusStatus" role="status"></p>
+        </section>
+        <section class="card set-page" id="set-aparencia" aria-labelledby="setLookTitle" hidden>
+          <div class="card-head"><h2 id="setLookTitle">Aparência</h2></div>
+          <p class="hint">Cor da tela. Automático segue o aparelho.</p>
+          <div class="seg" id="setTheme" role="radiogroup" aria-labelledby="setLookTitle">
+            <button type="button" role="radio" data-theme-opt="auto">Automático</button>
+            <button type="button" role="radio" data-theme-opt="light">Claro</button>
+            <button type="button" role="radio" data-theme-opt="dark">Escuro</button>
+          </div>
+        </section>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -2243,6 +2360,38 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     });
   }
 
+  // ======================= CONFIGURAÇÕES =======================
+
+  const MENU_NAME_MAX = 18;
+
+  /**
+   * Ordem e nomes dos menus escolhidos pela equipe. A ordem traz cada id uma
+   * vez (os que faltam vão para o fim); nome vazio usa o nome padrão.
+   */
+  function normalizeMenus(input, ids) {
+    const src = input || {};
+    const order = [];
+    for (const id of Array.isArray(src.order) ? src.order : []) {
+      if (ids.includes(id) && !order.includes(id)) order.push(id);
+    }
+    for (const id of ids) if (!order.includes(id)) order.push(id);
+    const names = {};
+    for (const id of ids) {
+      const n = String((src.names && src.names[id]) || '').replace(/\s+/g, ' ').trim().slice(0, MENU_NAME_MAX);
+      if (n) names[id] = n;
+    }
+    return { order, names };
+  }
+
+  /** Cópia da lista com o item da posição `from` levado para a posição `to`. */
+  function moveItem(list, from, to) {
+    const out = list.slice();
+    if (from < 0 || from >= out.length) return out;
+    const [item] = out.splice(from, 1);
+    out.splice(clamp(to, 0, out.length), 0, item);
+    return out;
+  }
+
   /** Tempo de pista acumulado por piloto, incluindo o stint em andamento. */
   function driveTimes(cfg, race, elapsed) {
     const totals = {};
@@ -2290,6 +2439,9 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     fitSplit,
     variantConfig,
     rankByLaps,
+    MENU_NAME_MAX,
+    normalizeMenus,
+    moveItem,
     driveTimes,
     mean,
     stdev,
@@ -2302,7 +2454,10 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
 
   const KS = window.KartStrategy;
   const STORAGE_KEY = 'ajm-kart-v1';
-  const TABS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
+  // Menus da barra (a equipe escolhe nome e ordem em Configurações) e a
+  // página de configurações, aberta pela engrenagem do topo.
+  const MENU_IDS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
+  const TABS = [...MENU_IDS, 'config'];
   // Uma cor por posição do piloto no cadastro (até 6) e a cor do texto sobre ela.
   const PILOT_VARS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
   const PILOT_ON = ['#ffffff', '#111517', '#111517', '#111517', '#111517', '#ffffff'];
@@ -2492,17 +2647,23 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   }
 
   // ---------- Abas ----------
+  let prevTab = 'plano';
   function setTab(tab) {
     if (!TABS.includes(tab)) tab = 'plano';
+    if (tab === 'config' && ui.tab !== 'config') prevTab = ui.tab;
     ui.tab = tab;
     document.body.dataset.tab = tab;
     if (tab !== 'comparar') undockAll();
     for (const t of TABS) {
       $(`tab-${t}`).hidden = t !== tab && !docked.includes(t);
       const b = $(`t-${t}`);
+      if (!b) continue;
       b.setAttribute('aria-selected', String(t === tab));
       b.tabIndex = t === tab ? 0 : -1;
     }
+    // Em Configurações nenhum menu fica marcado; o primeiro continua alcançável pelo teclado.
+    if (!MENU_IDS.includes(tab)) $(`t-${menuOrder()[0]}`).tabIndex = 0;
+    $('btnConfig').setAttribute('aria-pressed', String(tab === 'config'));
     try { history.replaceState(null, '', `#${tab}`); } catch (e) { /* ok */ }
     renderTab();
     save();
@@ -2517,8 +2678,10 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   });
   document.querySelector('.tabs').addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    const i = TABS.indexOf(ui.tab) + (e.key === 'ArrowRight' ? 1 : -1);
-    const next = TABS[(i + TABS.length) % TABS.length];
+    const order = menuOrder();
+    const cur = order.indexOf(ui.tab);
+    const i = cur < 0 ? 0 : cur + (e.key === 'ArrowRight' ? 1 : -1);
+    const next = order[(i + order.length) % order.length];
     setTab(next);
     $(`t-${next}`).focus();
   });
@@ -2529,6 +2692,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     else if (ui.tab === 'comparar') renderCompare();
     else if (ui.tab === 'vivo') renderLive(true);
     else if (ui.tab === 'analise') renderAnalysis();
+    else if (ui.tab === 'config') renderConfig();
     else renderManual();
   }
 
@@ -4000,6 +4164,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     btn.setAttribute('aria-label', `Tema: ${THEME_NAMES[t]}. Toque para trocar.`);
     btn.title = `Tema: ${THEME_NAMES[t]}`;
     $('themeLabel').textContent = THEME_SHORT[t];
+    renderThemeOptions();
   }
 
   $('btnTheme').addEventListener('click', () => {
@@ -4443,7 +4608,8 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   function cmpMenuSelect(p) {
     const sel = mkEl('select', 'cmp-menu');
     sel.setAttribute('aria-label', `O que mostrar na parte ${p.i + 1}`);
-    sel.replaceChildren(...CMP_MENUS.map(([v, label]) => {
+    const options = [['team', CMP_MENUS[0][1]], ...menuOrder().filter((m) => DOCKABLE.includes(m)).map((m) => [m, menuName(m)])];
+    sel.replaceChildren(...options.map(([v, label]) => {
       const o = mkEl('option', null, label);
       o.value = v;
       return o;
@@ -4526,7 +4692,7 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     const pane = mkEl('article', 'cmp-pane cmp-menu-pane');
     pane.style.gridArea = cmpArea(p.cell);
     pane.dataset.menu = p.menu;
-    const name = CMP_MENUS.find(([m]) => m === p.menu)[1];
+    const name = menuName(p.menu);
     pane.setAttribute('aria-label', `Parte ${p.i + 1}: ${name}`);
     const head = mkEl('header', 'cmp-head');
     const pick = mkEl('div', 'cmp-pick');
@@ -4940,6 +5106,199 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
     }
     host.replaceChildren(svg);
   }
+
+  // ======================= CONFIGURAÇÕES =======================
+  // Submenu Menus: nome e ordem de cada menu da barra. Submenu Aparência: tema.
+  const MENU_DEFAULT_NAMES = Object.fromEntries(MENU_IDS.map((id) => [id, $(`t-${id}`).querySelector('span').textContent]));
+  ui.menus = KS.normalizeMenus(ui.menus, MENU_IDS);
+  let setSub = 'menus';
+
+  function menuOrder() { return ui.menus.order; }
+  function menuName(id) { return ui.menus.names[id] || MENU_DEFAULT_NAMES[id]; }
+
+  /** Põe os botões da barra na ordem escolhida e com os nomes da equipe. */
+  function applyMenus() {
+    const nav = document.querySelector('.tabs');
+    for (const id of menuOrder()) {
+      const b = $(`t-${id}`);
+      b.querySelector('span').textContent = menuName(id);
+      nav.appendChild(b);
+    }
+  }
+  applyMenus();
+
+  $('btnConfig').addEventListener('click', () => setTab(ui.tab === 'config' ? prevTab : 'config'));
+  $('setNav').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sub]');
+    if (!b) return;
+    setSub = b.dataset.sub;
+    renderConfig();
+  });
+
+  function renderConfig() {
+    for (const b of $('setNav').querySelectorAll('[data-sub]')) {
+      b.setAttribute('aria-current', b.dataset.sub === setSub ? 'page' : 'false');
+    }
+    $('set-menus').hidden = setSub !== 'menus';
+    $('set-aparencia').hidden = setSub !== 'aparencia';
+    if (setSub === 'menus') renderMenuEditor();
+    renderThemeOptions();
+  }
+
+  function renderMenuEditor(focusSel) {
+    const order = menuOrder();
+    $('setMenuList').replaceChildren(...order.map((id, i) => {
+      const li = mkEl('li', 'menu-row');
+      li.dataset.id = id;
+      const grip = mkEl('button', 'drag-handle');
+      grip.type = 'button';
+      grip.dataset.id = id;
+      grip.setAttribute('aria-label', `Mover ${menuName(id)}. Arraste, ou use as setas para cima e para baixo.`);
+      const icon = $(`t-${id}`).querySelector('svg').cloneNode(true);
+      icon.classList.add('menu-ico');
+      const input = mkEl('input', 'menu-input');
+      input.type = 'text';
+      input.maxLength = KS.MENU_NAME_MAX;
+      input.id = `set-name-${id}`;
+      input.dataset.id = id;
+      input.value = ui.menus.names[id] || '';
+      input.placeholder = MENU_DEFAULT_NAMES[id];
+      input.setAttribute('aria-label', `Nome do menu ${MENU_DEFAULT_NAMES[id]}`);
+      const up = mkEl('button', 'menu-move', '↑');
+      up.type = 'button';
+      up.dataset.id = id;
+      up.dataset.dir = '-1';
+      up.disabled = i === 0;
+      up.setAttribute('aria-label', `Subir ${menuName(id)}`);
+      const down = mkEl('button', 'menu-move', '↓');
+      down.type = 'button';
+      down.dataset.id = id;
+      down.dataset.dir = '1';
+      down.disabled = i === order.length - 1;
+      down.setAttribute('aria-label', `Descer ${menuName(id)}`);
+      li.append(grip, mkEl('span', 'menu-pos', `${i + 1}º`), icon, input, up, down);
+      return li;
+    }));
+    if (focusSel) {
+      const el = $('setMenuList').querySelector(focusSel);
+      if (el && !el.disabled) el.focus();
+    }
+  }
+
+  function moveMenu(id, to, focusSel) {
+    const from = menuOrder().indexOf(id);
+    if (from < 0 || to === from || to < 0 || to >= MENU_IDS.length) return;
+    ui.menus.order = KS.moveItem(menuOrder(), from, to);
+    applyMenus();
+    save();
+    renderMenuEditor(focusSel);
+    $('setMenusStatus').textContent = `${menuName(id)} agora é o ${to + 1}º menu.`;
+  }
+
+  const menuList = $('setMenuList');
+  menuList.addEventListener('input', (e) => {
+    const id = e.target.dataset.id;
+    if (!id || !e.target.matches('.menu-input')) return;
+    const v = e.target.value.replace(/\s+/g, ' ').trim();
+    if (v && v !== MENU_DEFAULT_NAMES[id]) ui.menus.names[id] = v;
+    else delete ui.menus.names[id];
+    applyMenus();
+    save();
+    $('setMenusStatus').textContent = '';
+  });
+  menuList.addEventListener('click', (e) => {
+    const b = e.target.closest('.menu-move');
+    if (!b || b.disabled) return;
+    const id = b.dataset.id;
+    const dir = Number(b.dataset.dir);
+    const to = menuOrder().indexOf(id) + dir;
+    // Mantém o foco na mesma seta; na ponta da lista, passa para a outra.
+    const other = dir < 0 ? '1' : '-1';
+    const atEdge = to === 0 || to === MENU_IDS.length - 1;
+    moveMenu(id, to, `.menu-move[data-id="${id}"][data-dir="${atEdge ? other : b.dataset.dir}"]`);
+  });
+  menuList.addEventListener('keydown', (e) => {
+    const g = e.target.closest('.drag-handle');
+    if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    const id = g.dataset.id;
+    moveMenu(id, menuOrder().indexOf(id) + (e.key === 'ArrowUp' ? -1 : 1), `.drag-handle[data-id="${id}"]`);
+  });
+
+  // Arrastar pela alça: funciona com mouse e com o dedo (eventos de ponteiro).
+  menuList.addEventListener('pointerdown', (e) => {
+    const grip = e.target.closest('.drag-handle');
+    if (!grip || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    e.preventDefault();
+    const row = grip.closest('.menu-row');
+    const rows = [...menuList.children];
+    const rects = rows.map((r) => r.getBoundingClientRect());
+    const from = rows.indexOf(row);
+    const step = rows.length > 1 ? rects[1].top - rects[0].top : rects[0].height;
+    const startY = e.clientY;
+    let to = from;
+    try { grip.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
+    menuList.classList.add('is-dragging');
+    row.classList.add('dragging');
+    const onMove = (ev) => {
+      const dy = ev.clientY - startY;
+      const min = rects[0].top - rects[from].top;
+      const max = rects[rects.length - 1].top - rects[from].top;
+      const y = Math.max(min - step / 2, Math.min(max + step / 2, dy));
+      row.style.transform = `translateY(${y}px)`;
+      to = Math.max(0, Math.min(rows.length - 1, from + Math.round(y / step)));
+      rows.forEach((r, k) => {
+        if (k === from) return;
+        const shift = from < to && k > from && k <= to ? -step : from > to && k >= to && k < from ? step : 0;
+        r.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
+    const onEnd = () => {
+      grip.removeEventListener('pointermove', onMove);
+      grip.removeEventListener('pointerup', onEnd);
+      grip.removeEventListener('pointercancel', onEnd);
+      menuList.classList.remove('is-dragging');
+      rows.forEach((r) => { r.style.transform = ''; r.classList.remove('dragging'); });
+      if (to !== from) moveMenu(row.dataset.id, to);
+    };
+    grip.addEventListener('pointermove', onMove);
+    grip.addEventListener('pointerup', onEnd);
+    grip.addEventListener('pointercancel', onEnd);
+  });
+
+  armed($('btnMenusReset'), () => {
+    ui.menus = KS.normalizeMenus(null, MENU_IDS);
+    applyMenus();
+    save();
+    renderMenuEditor();
+    $('setMenusStatus').textContent = 'Nomes e ordem dos menus voltaram ao padrão.';
+  });
+
+  function renderThemeOptions() {
+    const t = THEMES.includes(ui.theme) ? ui.theme : 'auto';
+    for (const b of $('setTheme').querySelectorAll('[data-theme-opt]')) {
+      const on = b.dataset.themeOpt === t;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+    }
+  }
+  $('setTheme').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme-opt]');
+    if (!b) return;
+    ui.theme = b.dataset.themeOpt;
+    applyTheme();
+    save();
+  });
+  $('setTheme').addEventListener('keydown', (e) => {
+    const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    const cur = THEMES.indexOf(THEMES.includes(ui.theme) ? ui.theme : 'auto');
+    ui.theme = THEMES[(cur + keys[e.key] + THEMES.length) % THEMES.length];
+    applyTheme();
+    save();
+    $('setTheme').querySelector(`[data-theme-opt="${ui.theme}"]`).focus();
+  });
 
   function boot() {
     fillForm();

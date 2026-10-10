@@ -4,7 +4,10 @@
 
   const KS = window.KartStrategy;
   const STORAGE_KEY = 'ajm-kart-v1';
-  const TABS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
+  // Menus da barra (a equipe escolhe nome e ordem em Configurações) e a
+  // página de configurações, aberta pela engrenagem do topo.
+  const MENU_IDS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
+  const TABS = [...MENU_IDS, 'config'];
   // Uma cor por posição do piloto no cadastro (até 6) e a cor do texto sobre ela.
   const PILOT_VARS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
   const PILOT_ON = ['#ffffff', '#111517', '#111517', '#111517', '#111517', '#ffffff'];
@@ -194,17 +197,23 @@
   }
 
   // ---------- Abas ----------
+  let prevTab = 'plano';
   function setTab(tab) {
     if (!TABS.includes(tab)) tab = 'plano';
+    if (tab === 'config' && ui.tab !== 'config') prevTab = ui.tab;
     ui.tab = tab;
     document.body.dataset.tab = tab;
     if (tab !== 'comparar') undockAll();
     for (const t of TABS) {
       $(`tab-${t}`).hidden = t !== tab && !docked.includes(t);
       const b = $(`t-${t}`);
+      if (!b) continue;
       b.setAttribute('aria-selected', String(t === tab));
       b.tabIndex = t === tab ? 0 : -1;
     }
+    // Em Configurações nenhum menu fica marcado; o primeiro continua alcançável pelo teclado.
+    if (!MENU_IDS.includes(tab)) $(`t-${menuOrder()[0]}`).tabIndex = 0;
+    $('btnConfig').setAttribute('aria-pressed', String(tab === 'config'));
     try { history.replaceState(null, '', `#${tab}`); } catch (e) { /* ok */ }
     renderTab();
     save();
@@ -219,8 +228,10 @@
   });
   document.querySelector('.tabs').addEventListener('keydown', (e) => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    const i = TABS.indexOf(ui.tab) + (e.key === 'ArrowRight' ? 1 : -1);
-    const next = TABS[(i + TABS.length) % TABS.length];
+    const order = menuOrder();
+    const cur = order.indexOf(ui.tab);
+    const i = cur < 0 ? 0 : cur + (e.key === 'ArrowRight' ? 1 : -1);
+    const next = order[(i + order.length) % order.length];
     setTab(next);
     $(`t-${next}`).focus();
   });
@@ -231,6 +242,7 @@
     else if (ui.tab === 'comparar') renderCompare();
     else if (ui.tab === 'vivo') renderLive(true);
     else if (ui.tab === 'analise') renderAnalysis();
+    else if (ui.tab === 'config') renderConfig();
     else renderManual();
   }
 
@@ -1702,6 +1714,7 @@
     btn.setAttribute('aria-label', `Tema: ${THEME_NAMES[t]}. Toque para trocar.`);
     btn.title = `Tema: ${THEME_NAMES[t]}`;
     $('themeLabel').textContent = THEME_SHORT[t];
+    renderThemeOptions();
   }
 
   $('btnTheme').addEventListener('click', () => {
@@ -2145,7 +2158,8 @@
   function cmpMenuSelect(p) {
     const sel = mkEl('select', 'cmp-menu');
     sel.setAttribute('aria-label', `O que mostrar na parte ${p.i + 1}`);
-    sel.replaceChildren(...CMP_MENUS.map(([v, label]) => {
+    const options = [['team', CMP_MENUS[0][1]], ...menuOrder().filter((m) => DOCKABLE.includes(m)).map((m) => [m, menuName(m)])];
+    sel.replaceChildren(...options.map(([v, label]) => {
       const o = mkEl('option', null, label);
       o.value = v;
       return o;
@@ -2228,7 +2242,7 @@
     const pane = mkEl('article', 'cmp-pane cmp-menu-pane');
     pane.style.gridArea = cmpArea(p.cell);
     pane.dataset.menu = p.menu;
-    const name = CMP_MENUS.find(([m]) => m === p.menu)[1];
+    const name = menuName(p.menu);
     pane.setAttribute('aria-label', `Parte ${p.i + 1}: ${name}`);
     const head = mkEl('header', 'cmp-head');
     const pick = mkEl('div', 'cmp-pick');
@@ -2642,6 +2656,199 @@
     }
     host.replaceChildren(svg);
   }
+
+  // ======================= CONFIGURAÇÕES =======================
+  // Submenu Menus: nome e ordem de cada menu da barra. Submenu Aparência: tema.
+  const MENU_DEFAULT_NAMES = Object.fromEntries(MENU_IDS.map((id) => [id, $(`t-${id}`).querySelector('span').textContent]));
+  ui.menus = KS.normalizeMenus(ui.menus, MENU_IDS);
+  let setSub = 'menus';
+
+  function menuOrder() { return ui.menus.order; }
+  function menuName(id) { return ui.menus.names[id] || MENU_DEFAULT_NAMES[id]; }
+
+  /** Põe os botões da barra na ordem escolhida e com os nomes da equipe. */
+  function applyMenus() {
+    const nav = document.querySelector('.tabs');
+    for (const id of menuOrder()) {
+      const b = $(`t-${id}`);
+      b.querySelector('span').textContent = menuName(id);
+      nav.appendChild(b);
+    }
+  }
+  applyMenus();
+
+  $('btnConfig').addEventListener('click', () => setTab(ui.tab === 'config' ? prevTab : 'config'));
+  $('setNav').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sub]');
+    if (!b) return;
+    setSub = b.dataset.sub;
+    renderConfig();
+  });
+
+  function renderConfig() {
+    for (const b of $('setNav').querySelectorAll('[data-sub]')) {
+      b.setAttribute('aria-current', b.dataset.sub === setSub ? 'page' : 'false');
+    }
+    $('set-menus').hidden = setSub !== 'menus';
+    $('set-aparencia').hidden = setSub !== 'aparencia';
+    if (setSub === 'menus') renderMenuEditor();
+    renderThemeOptions();
+  }
+
+  function renderMenuEditor(focusSel) {
+    const order = menuOrder();
+    $('setMenuList').replaceChildren(...order.map((id, i) => {
+      const li = mkEl('li', 'menu-row');
+      li.dataset.id = id;
+      const grip = mkEl('button', 'drag-handle');
+      grip.type = 'button';
+      grip.dataset.id = id;
+      grip.setAttribute('aria-label', `Mover ${menuName(id)}. Arraste, ou use as setas para cima e para baixo.`);
+      const icon = $(`t-${id}`).querySelector('svg').cloneNode(true);
+      icon.classList.add('menu-ico');
+      const input = mkEl('input', 'menu-input');
+      input.type = 'text';
+      input.maxLength = KS.MENU_NAME_MAX;
+      input.id = `set-name-${id}`;
+      input.dataset.id = id;
+      input.value = ui.menus.names[id] || '';
+      input.placeholder = MENU_DEFAULT_NAMES[id];
+      input.setAttribute('aria-label', `Nome do menu ${MENU_DEFAULT_NAMES[id]}`);
+      const up = mkEl('button', 'menu-move', '↑');
+      up.type = 'button';
+      up.dataset.id = id;
+      up.dataset.dir = '-1';
+      up.disabled = i === 0;
+      up.setAttribute('aria-label', `Subir ${menuName(id)}`);
+      const down = mkEl('button', 'menu-move', '↓');
+      down.type = 'button';
+      down.dataset.id = id;
+      down.dataset.dir = '1';
+      down.disabled = i === order.length - 1;
+      down.setAttribute('aria-label', `Descer ${menuName(id)}`);
+      li.append(grip, mkEl('span', 'menu-pos', `${i + 1}º`), icon, input, up, down);
+      return li;
+    }));
+    if (focusSel) {
+      const el = $('setMenuList').querySelector(focusSel);
+      if (el && !el.disabled) el.focus();
+    }
+  }
+
+  function moveMenu(id, to, focusSel) {
+    const from = menuOrder().indexOf(id);
+    if (from < 0 || to === from || to < 0 || to >= MENU_IDS.length) return;
+    ui.menus.order = KS.moveItem(menuOrder(), from, to);
+    applyMenus();
+    save();
+    renderMenuEditor(focusSel);
+    $('setMenusStatus').textContent = `${menuName(id)} agora é o ${to + 1}º menu.`;
+  }
+
+  const menuList = $('setMenuList');
+  menuList.addEventListener('input', (e) => {
+    const id = e.target.dataset.id;
+    if (!id || !e.target.matches('.menu-input')) return;
+    const v = e.target.value.replace(/\s+/g, ' ').trim();
+    if (v && v !== MENU_DEFAULT_NAMES[id]) ui.menus.names[id] = v;
+    else delete ui.menus.names[id];
+    applyMenus();
+    save();
+    $('setMenusStatus').textContent = '';
+  });
+  menuList.addEventListener('click', (e) => {
+    const b = e.target.closest('.menu-move');
+    if (!b || b.disabled) return;
+    const id = b.dataset.id;
+    const dir = Number(b.dataset.dir);
+    const to = menuOrder().indexOf(id) + dir;
+    // Mantém o foco na mesma seta; na ponta da lista, passa para a outra.
+    const other = dir < 0 ? '1' : '-1';
+    const atEdge = to === 0 || to === MENU_IDS.length - 1;
+    moveMenu(id, to, `.menu-move[data-id="${id}"][data-dir="${atEdge ? other : b.dataset.dir}"]`);
+  });
+  menuList.addEventListener('keydown', (e) => {
+    const g = e.target.closest('.drag-handle');
+    if (!g || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    e.preventDefault();
+    const id = g.dataset.id;
+    moveMenu(id, menuOrder().indexOf(id) + (e.key === 'ArrowUp' ? -1 : 1), `.drag-handle[data-id="${id}"]`);
+  });
+
+  // Arrastar pela alça: funciona com mouse e com o dedo (eventos de ponteiro).
+  menuList.addEventListener('pointerdown', (e) => {
+    const grip = e.target.closest('.drag-handle');
+    if (!grip || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    e.preventDefault();
+    const row = grip.closest('.menu-row');
+    const rows = [...menuList.children];
+    const rects = rows.map((r) => r.getBoundingClientRect());
+    const from = rows.indexOf(row);
+    const step = rows.length > 1 ? rects[1].top - rects[0].top : rects[0].height;
+    const startY = e.clientY;
+    let to = from;
+    try { grip.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
+    menuList.classList.add('is-dragging');
+    row.classList.add('dragging');
+    const onMove = (ev) => {
+      const dy = ev.clientY - startY;
+      const min = rects[0].top - rects[from].top;
+      const max = rects[rects.length - 1].top - rects[from].top;
+      const y = Math.max(min - step / 2, Math.min(max + step / 2, dy));
+      row.style.transform = `translateY(${y}px)`;
+      to = Math.max(0, Math.min(rows.length - 1, from + Math.round(y / step)));
+      rows.forEach((r, k) => {
+        if (k === from) return;
+        const shift = from < to && k > from && k <= to ? -step : from > to && k >= to && k < from ? step : 0;
+        r.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
+    const onEnd = () => {
+      grip.removeEventListener('pointermove', onMove);
+      grip.removeEventListener('pointerup', onEnd);
+      grip.removeEventListener('pointercancel', onEnd);
+      menuList.classList.remove('is-dragging');
+      rows.forEach((r) => { r.style.transform = ''; r.classList.remove('dragging'); });
+      if (to !== from) moveMenu(row.dataset.id, to);
+    };
+    grip.addEventListener('pointermove', onMove);
+    grip.addEventListener('pointerup', onEnd);
+    grip.addEventListener('pointercancel', onEnd);
+  });
+
+  armed($('btnMenusReset'), () => {
+    ui.menus = KS.normalizeMenus(null, MENU_IDS);
+    applyMenus();
+    save();
+    renderMenuEditor();
+    $('setMenusStatus').textContent = 'Nomes e ordem dos menus voltaram ao padrão.';
+  });
+
+  function renderThemeOptions() {
+    const t = THEMES.includes(ui.theme) ? ui.theme : 'auto';
+    for (const b of $('setTheme').querySelectorAll('[data-theme-opt]')) {
+      const on = b.dataset.themeOpt === t;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+    }
+  }
+  $('setTheme').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-theme-opt]');
+    if (!b) return;
+    ui.theme = b.dataset.themeOpt;
+    applyTheme();
+    save();
+  });
+  $('setTheme').addEventListener('keydown', (e) => {
+    const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    const cur = THEMES.indexOf(THEMES.includes(ui.theme) ? ui.theme : 'auto');
+    ui.theme = THEMES[(cur + keys[e.key] + THEMES.length) % THEMES.length];
+    applyTheme();
+    save();
+    $('setTheme').querySelector(`[data-theme-opt="${ui.theme}"]`).focus();
+  });
 
   function boot() {
     fillForm();

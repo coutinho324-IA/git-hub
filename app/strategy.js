@@ -816,6 +816,38 @@
     });
   }
 
+  // ======================= CONFIGURAÇÕES =======================
+
+  const MENU_NAME_MAX = 18;
+
+  /**
+   * Ordem e nomes dos menus escolhidos pela equipe. A ordem traz cada id uma
+   * vez (os que faltam vão para o fim); nome vazio usa o nome padrão.
+   */
+  function normalizeMenus(input, ids) {
+    const src = input || {};
+    const order = [];
+    for (const id of Array.isArray(src.order) ? src.order : []) {
+      if (ids.includes(id) && !order.includes(id)) order.push(id);
+    }
+    for (const id of ids) if (!order.includes(id)) order.push(id);
+    const names = {};
+    for (const id of ids) {
+      const n = String((src.names && src.names[id]) || '').replace(/\s+/g, ' ').trim().slice(0, MENU_NAME_MAX);
+      if (n) names[id] = n;
+    }
+    return { order, names };
+  }
+
+  /** Cópia da lista com o item da posição `from` levado para a posição `to`. */
+  function moveItem(list, from, to) {
+    const out = list.slice();
+    if (from < 0 || from >= out.length) return out;
+    const [item] = out.splice(from, 1);
+    out.splice(clamp(to, 0, out.length), 0, item);
+    return out;
+  }
+
   /** Tempo de pista acumulado por piloto, incluindo o stint em andamento. */
   function driveTimes(cfg, race, elapsed) {
     const totals = {};
@@ -863,6 +895,9 @@
     fitSplit,
     variantConfig,
     rankByLaps,
+    MENU_NAME_MAX,
+    normalizeMenus,
+    moveItem,
     driveTimes,
     mean,
     stdev,

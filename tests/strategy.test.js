@@ -428,3 +428,20 @@ test('comparar: tela dividida sozinha para n equipes', () => {
   assert.equal(KS.splitCells('auto', 0, 0, 7).cells.length, 7);
   assert.equal(KS.fitSplit(40).cells.length, 12);
 });
+
+test('configurações: nome e ordem dos menus', () => {
+  const ids = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
+  const d = KS.normalizeMenus(null, ids);
+  assert.deepEqual(d.order, ids);
+  assert.deepEqual(d.names, {});
+  // Ordem salva com id repetido, id que não existe e menu faltando.
+  const m = KS.normalizeMenus({ order: ['vivo', 'vivo', 'xx', 'plano'], names: { vivo: '  Box   ao vivo ', plano: '', xx: 'Nada' } }, ids);
+  assert.deepEqual(m.order, ['vivo', 'plano', 'equipes', 'comparar', 'analise', 'manual']);
+  assert.deepEqual(m.names, { vivo: 'Box ao vivo' });
+  assert.equal(KS.normalizeMenus({ names: { manual: 'x'.repeat(40) } }, ids).names.manual.length, KS.MENU_NAME_MAX);
+  // Arrastar: tira da posição e coloca na nova, sem mexer na lista original.
+  assert.deepEqual(KS.moveItem(ids, 5, 0), ['manual', 'equipes', 'plano', 'comparar', 'vivo', 'analise']);
+  assert.deepEqual(KS.moveItem(ids, 0, 2), ['plano', 'comparar', 'equipes', 'vivo', 'analise', 'manual']);
+  assert.deepEqual(KS.moveItem(ids, 1, 99).at(-1), 'plano');
+  assert.deepEqual(ids[0], 'equipes');
+});
