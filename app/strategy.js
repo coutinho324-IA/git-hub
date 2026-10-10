@@ -24,7 +24,9 @@
     minPitSec: 300,
     // Perdas de cada parada além dos 5:00 (ajuste depois do treino).
     pitLaneLossSec: 10, // entrar e sair do pit lane comparado a seguir na pista
-    exitMarginSec: 2, // folga para não sair antes do tempo mínimo
+    // Folga para não sair antes do tempo mínimo: cobre o erro de quem aperta o
+    // cronômetro (1 a 2 s). Sair cedo dá punição; cada segundo de folga custa 1 s.
+    exitMarginSec: 3,
     outLapLossSec: 1.5, // pneu frio na volta de saída
     // Regulamento e limites da equipe (0 = sem limite).
     maxStintMin: 35,
@@ -46,10 +48,17 @@
       { id: 'p2', name: 'Guilherme Coutinho', lapSec: 48.4 },
     ],
     order: ['p1', 'p2', 'p1', 'p2'],
-    // Plano da equipe: Kaka (mais rápido) faz stints de 30 min, Guilherme
-    // fica com o resto (~22 min). O último stint fecha a conta.
+    // Plano da equipe: 4 turnos de 26:15 revezando A (Kaka, larga) e B
+    // (Guilherme, fecha). O último turno fecha a conta até a bandeira.
     stintMode: 'custom', // 'equal' | 'custom'
-    customStintMin: [30, 22.1625, 30],
+    customStintMin: [26.25, 26.25, 26.25],
+    // O que o piloto faz em cada turno (editável).
+    stintNotes: [
+      'Largada: escapar do tráfego inicial, sem riscos.',
+      'Pista mais limpa: ritmo constante.',
+      'Segundo turno: foco em consistência.',
+      'Sprint final até a bandeira.',
+    ],
   });
 
   const NUMERIC_KEYS = [
@@ -105,6 +114,12 @@
     const srcCustom = Array.isArray(src.customStintMin) ? src.customStintMin : [];
     cfg.customStintMin = [];
     for (let i = 0; i < n - 1; i++) cfg.customStintMin.push(Math.max(0, num(srcCustom[i], 0)));
+    // Anotação de cada turno. Sem anotações salvas, usa as padrão quando a
+    // prova tem o mesmo número de turnos do padrão.
+    const srcNotes = Array.isArray(src.stintNotes)
+      ? src.stintNotes
+      : (n === DEFAULT_CONFIG.stintNotes.length ? DEFAULT_CONFIG.stintNotes : []);
+    cfg.stintNotes = Array.from({ length: n }, (_, i) => String(srcNotes[i] || '').trim().slice(0, 140));
     if (cfg.stintMode === 'custom' && cfg.customStintMin.every((m) => m === 0) && n > 1) {
       cfg.stintMode = 'equal';
     }
@@ -307,6 +322,7 @@
       const stintLaps = Math.max(0, d) / pilot.lapSec;
       stints.push({
         index: i,
+        note: cfg.stintNotes[i] || '',
         pilotId: pilot.id,
         pilotName: pilot.name,
         lapSec: pilot.lapSec,
@@ -646,7 +662,26 @@
       order: cfg.order.slice(),
       stintMode: cfg.stintMode,
       customStintMin: cfg.customStintMin.slice(),
+      stintNotes: cfg.stintNotes.slice(),
     };
+  }
+
+  /**
+   * Duração digitada pela equipe, em segundos: "26:15" (min:s), "1:02:30"
+   * (h:min:s) ou minutos com vírgula/ponto ("26,25"). NaN se não entender.
+   */
+  function parseDuration(text) {
+    const t = String(text == null ? '' : text).trim().replace(',', '.');
+    if (!t) return NaN;
+    if (t.includes(':')) {
+      const parts = t.split(':').map((x) => x.trim());
+      if (parts.length > 3 || parts.some((x) => !/^\d+(\.\d+)?$/.test(x))) return NaN;
+      const nums = parts.map(Number);
+      if (nums.slice(1).some((x) => x >= 60)) return NaN;
+      return nums.reduce((acc, x) => acc * 60 + x, 0);
+    }
+    if (!/^\d+(\.\d+)?$/.test(t)) return NaN;
+    return Number(t) * 60;
   }
 
   /** Problemas que impedem salvar a equipe (lista vazia = pode salvar). */
@@ -682,6 +717,7 @@
       order: keep ? keep.order : undefined,
       stintMode: keep ? keep.stintMode : 'equal',
       customStintMin: keep ? keep.customStintMin : [],
+      stintNotes: keep ? keep.stintNotes : undefined,
     });
   }
 
@@ -706,6 +742,7 @@
     NEW_PILOT_LAP,
     teamFromConfig,
     planOf,
+    parseDuration,
     validateTeam,
     applyTeam,
     normalizeConfig,

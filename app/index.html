@@ -27,15 +27,21 @@
     </div>
     <div class="topbar-right">
       <span class="net-chip" id="netChip" hidden>Sem sinal</span>
+      <button type="button" class="theme-btn" id="btnTheme" aria-label="Tema: automático" title="Tema: automático">
+        <svg class="ico-auto" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" class="fill"/></svg>
+        <svg class="ico-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
+        <svg class="ico-dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+        <span class="theme-label" id="themeLabel">Auto</span>
+      </button>
       <div class="mini-clock" id="miniClock" title="Tempo restante de prova">2:00:00</div>
     </div>
   </div>
   <nav class="wrap tabs" role="tablist" aria-label="Seções">
-    <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes">Equipes</button>
-    <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano">Plano</button>
-    <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo">Ao vivo</button>
-    <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise">Análise</button>
-    <button type="button" role="tab" id="t-manual" data-tab="manual" aria-controls="tab-manual">Manual</button>
+    <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 13.6c2.8.2 5 2.2 5 5"/></svg><span>Equipes</span></button>
+    <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4.5L18 13H5"/><path d="M9 4v9M13 4v9"/></svg><span>Plano</span></button>
+    <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M19 6.5l1.5-1.5"/></svg><span>Ao vivo</span></button>
+    <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M6 16l4-5 3 3 5-7"/></svg><span>Análise</span></button>
+    <button type="button" role="tab" id="t-manual" data-tab="manual" aria-controls="tab-manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Manual</span></button>
   </nav>
   <div class="checker" aria-hidden="true"></div>
 </header>
@@ -77,6 +83,14 @@
       <p class="lede" id="planLede">Ajuste os dados ao lado e o plano se refaz na hora.</p>
     </div>
 
+    <figure class="card tl-card">
+      <figcaption class="card-head">
+        <h2>Linha do tempo da prova</h2>
+        <div class="legend" id="tlLegend"></div>
+      </figcaption>
+      <div class="tl-scroll"><div id="timeline" class="timeline"></div></div>
+    </figure>
+
     <div class="kpis" id="kpis"></div>
 
     <section class="card meta-card" id="metaCard">
@@ -101,37 +115,41 @@
       <div class="scenarios" id="scenarios"></div>
     </section>
 
-    <figure class="card tl-card">
-      <figcaption class="card-head">
-        <h2>Linha do tempo da prova</h2>
-        <div class="legend" id="tlLegend"></div>
-      </figcaption>
-      <div class="tl-scroll"><div id="timeline" class="timeline"></div></div>
-    </figure>
 
     <div class="plan-grid">
       <form id="cfgForm" class="card cfg" autocomplete="off">
+        <details class="cfg-group" open>
+          <summary><span>Equipe</span></summary>
         <fieldset>
-          <legend>Equipe</legend>
+          <legend class="sr-only">Equipe</legend>
           <label class="field field-wide"><span>Equipe em uso</span><select id="teamSelect"></select></label>
           <ul class="team-summary field-wide" id="teamSummary"></ul>
           <button type="button" class="btn btn-ghost field-wide" id="btnEditTeams">Editar equipes e pilotos</button>
         </fieldset>
+        </details>
+        <details class="cfg-group" open>
+          <summary><span>Prova</span></summary>
         <fieldset>
-          <legend>Prova</legend>
+          <legend class="sr-only">Prova</legend>
           <label class="field"><span>Duração (min)</span><input id="f-raceMin" data-key="raceMin" type="number" inputmode="decimal" step="1" min="1"></label>
           <label class="field"><span>Paradas obrigatórias</span><input id="f-stops" data-key="stops" type="number" inputmode="numeric" step="1" min="0" max="10"></label>
           <label class="field"><span>Tempo mínimo no box (s)</span><input id="f-minPitSec" data-key="minPitSec" type="number" inputmode="decimal" step="1" min="0"></label>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Perdas em cada parada</span></summary>
         <fieldset>
-          <legend>Perdas em cada parada</legend>
+          <legend class="sr-only">Perdas em cada parada</legend>
           <label class="field"><span>Pit lane, entrada + saída (s)</span><input id="f-pitLaneLossSec" data-key="pitLaneLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Folga de segurança na saída (s)</span><input id="f-exitMarginSec" data-key="exitMarginSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
           <label class="field"><span>Volta de saída, pneu frio (s)</span><input id="f-outLapLossSec" data-key="outLapLossSec" type="number" inputmode="decimal" step="0.5" min="0"></label>
-          <p class="hint field-wide">Meça no treino: cronometre do ponto de frenagem da entrada até a linha de saída e compare com uma volta normal.</p>
+          <p class="hint field-wide">Meça no treino: cronometre do ponto de frenagem da entrada até a linha de saída e compare com uma volta normal. A folga de 3 s cobre o erro de quem aperta o cronômetro; sair antes do tempo mínimo dá punição.</p>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Regulamento e limites</span><small>0 = sem limite</small></summary>
         <fieldset>
-          <legend>Regulamento e limites <small>0 = sem limite</small></legend>
+          <legend class="sr-only">Regulamento e limites</legend>
           <label class="field"><span>Stint máximo (min)</span><input id="f-maxStintMin" data-key="maxStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <label class="field"><span>Stint mínimo (min)</span><input id="f-minStintMin" data-key="minStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <label class="field"><span>Mínimo por piloto (min)</span><input id="f-minDriveMin" data-key="minDriveMin" type="number" inputmode="decimal" step="1" min="0"></label>
@@ -139,12 +157,16 @@
           <label class="field"><span>Sem parada nos últimos (min)</span><input id="f-noPitLastMin" data-key="noPitLastMin" type="number" inputmode="decimal" step="1" min="0"></label>
           <p class="hint field-wide">O stint máximo de 35 min é um limite físico sugerido. Troque pelos números do regulamento da prova.</p>
         </fieldset>
+        </details>
+        <details class="cfg-group">
+          <summary><span>Estratégia</span></summary>
         <fieldset>
-          <legend>Estratégia</legend>
+          <legend class="sr-only">Estratégia</legend>
           <label class="field"><span>Janela ideal (± voltas)</span><input id="f-windowLaps" data-key="windowLaps" type="number" inputmode="numeric" step="1" min="0"></label>
           <label class="field"><span>Volta sob amarela/SC (s)</span><input id="f-yellowLapSec" data-key="yellowLapSec" type="number" inputmode="decimal" step="1" min="1"></label>
           <label class="field"><span>Amarela vale box após (min de stint)</span><input id="f-yellowMinStintMin" data-key="yellowMinStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
         </fieldset>
+        </details>
         <div class="form-foot">
           <button type="button" class="btn btn-ghost" id="btnResetCfg" data-confirm="Toque de novo para restaurar">Restaurar padrão</button>
         </div>
@@ -213,6 +235,7 @@
                 <span class="eyebrow" id="lvStintLabel">Stint 1 de 4</span>
                 <strong id="lvPilot">Kaka</strong>
                 <span class="driver-meta" id="lvMeta"></span>
+                <span class="driver-note" id="lvNote" hidden></span>
               </div>
             </div>
             <dl class="readouts">
@@ -275,7 +298,7 @@
               <li data-from="0" data-to="60"><b>0:00–1:00</b> Celular passa para quem saiu do kart. Troca de piloto, lastro e banco.</li>
               <li data-from="60" data-to="180"><b>1:00–3:00</b> Quem saiu conta como está o kart. Quem entra repete o plano do stint. Água.</li>
               <li data-from="180" data-to="240"><b>3:00–4:00</b> Piloto sentado, cinto, luvas, viseira limpa.</li>
-              <li data-from="240" data-to="9999"><b>4:00–5:00</b> Kart pronto. Quem está com o celular conta os 10 s finais em voz alta.</li>
+              <li data-from="240" data-to="9999"><b>4:00–LIBERA</b> Kart pronto. Quem está com o celular conta os 10 s finais em voz alta.</li>
             </ol>
           </div>
           <div class="action-row">
@@ -376,8 +399,9 @@
           <p>Uma rodada custa de 10 a 30 s. Um toque que entorta o kart estraga o resto da prova. Na largada e no meio do pelotão, a prioridade é chegar inteiro.</p>
         </li>
         <li>
-          <h3>Sair do box em 5:00, nem um segundo depois</h3>
+          <h3>Sair do box no LIBERA (<span data-m="release">5:03</span>), nem um segundo depois</h3>
           <p><b><span data-m="slacklap">16</span> s de sobra em cada uma das <span data-m="stops">3</span> paradas custam uma volta inteira.</b> O cronômetro do box conta regressivo, apita nos 60, 30 e 10 s finais e mostra LIBERA.</p>
+          <p>O LIBERA já inclui <span data-m="margin">3</span> s de folga para cobrir o erro de quem aperta o cronômetro. Sair antes do tempo mínimo dá punição, que custa muito mais que essa folga.</p>
         </li>
         <li>
           <h3>Parar na bandeira amarela</h3>
@@ -421,7 +445,7 @@
         <li><span class="t">0:00–1:00</span><p>Troca de piloto. Lastro conferido para o peso mínimo.</p></li>
         <li><span class="t">1:00–3:00</span><p>Quem saiu conta como está o kart (freio, pneu, curva ruim). Quem entra repete em voz alta o alvo de volta e quantas voltas tem o stint. Água.</p></li>
         <li><span class="t">3:00–4:00</span><p>Piloto sentado, cinto, luvas e viseira limpa.</p></li>
-        <li><span class="t">4:00–5:00</span><p>Quem está com o celular conta os 10 s finais em voz alta e libera no LIBERA, nunca antes.</p></li>
+        <li><span class="t">4:00–LIBERA</span><p>Quem está com o celular conta os 10 s finais em voz alta e libera no LIBERA (<span data-m="release">5:03</span>), nunca antes.</p></li>
         <li><span class="t">Depois</span><p>Quem saiu bebe água e descansa 10 minutos. Depois volta ao relógio e à placa. O resto do tempo é livre.</p></li>
       </ol>
 

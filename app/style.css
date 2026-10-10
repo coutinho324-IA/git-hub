@@ -41,8 +41,11 @@
   --step-3: 2rem;
   --step-4: 2.75rem;
 
-  --radius: 6px;
+  --radius: 12px;
+  --radius-sm: 8px;
   --gap: 16px;
+  --shadow: 0 1px 2px rgba(17, 21, 23, 0.05), 0 8px 24px rgba(17, 21, 23, 0.06);
+  --nav-h: 64px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -72,6 +75,7 @@
     --warn-ink: #fab219;
     --crit-ink: #ff7676;
     --grid: #232a2d;
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.02);
     color-scheme: dark;
   }
 }
@@ -102,6 +106,7 @@
   --warn-ink: #fab219;
   --crit-ink: #ff7676;
   --grid: #232a2d;
+  --shadow: 0 0 0 1px rgba(255, 255, 255, 0.02);
   color-scheme: dark;
 }
 
@@ -123,7 +128,10 @@ h3 { font-size: var(--step-1); font-weight: 700; }
 p { margin: 0; }
 button, input, select { font: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sr-only {
+  position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important;
+  border: 0 !important; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
 
 .wrap { width: 100%; max-width: 1120px; margin-inline: auto; padding-inline: 16px; }
 main.wrap { padding-block: 24px 64px; }
@@ -508,3 +516,125 @@ table.signs td:first-child { white-space: nowrap; font-family: var(--f-display);
   * { transition: none !important; animation: none !important; }
 }
 table.meta-table th { white-space: normal; vertical-align: bottom; }
+
+/* Ação de cada turno */
+table.data tr.note-row td { padding-top: 0; }
+table.data tr.note-row input { width: 100%; text-align: left; font-size: var(--step--1); min-height: 34px; }
+table.data tr:has(+ tr.note-row) td { border-bottom: 0; }
+.pcard-note { font-style: italic; color: var(--ink-2); }
+.driver-note { display: block; margin-top: 4px; font-size: var(--step--1); color: var(--ink); background: var(--accent-wash); border-radius: 4px; padding: 2px 8px; }
+
+
+/* =================================================================
+   Visual 2: cartões mais limpos, painel de números estilo placa de box,
+   abas com ícones (embaixo no celular) e grupos de ajuste recolhíveis.
+   ================================================================= */
+main.wrap { padding-block: 28px 72px; }
+.panel { gap: 20px; }
+.panel-head h1 { display: flex; align-items: center; gap: 12px; font-size: clamp(1.75rem, 6vw, 2.5rem); }
+.panel-head h1::before {
+  content: ""; flex: none; width: 22px; height: 22px; border-radius: 4px;
+  background: conic-gradient(var(--ink) 25%, var(--surface) 0 50%, var(--ink) 0 75%, var(--surface) 0) 0 0 / 11px 11px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.lede { font-size: var(--step-0); line-height: 1.55; }
+
+.card { border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
+.card-head h2, .card > h2 { font-size: var(--step-0); letter-spacing: 0.08em; color: var(--ink); }
+.hint { line-height: 1.45; }
+
+/* Botões e campos */
+.btn { border-radius: var(--radius-sm); min-height: 42px; padding: 9px 16px; transition: filter 0.15s, background 0.15s; }
+.btn:not(.btn-ghost) { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08), 0 4px 12px var(--accent-wash); }
+.field input, .field select, .manual-lap input, table select, table input {
+  border-radius: var(--radius-sm); background: var(--surface); min-height: 42px;
+}
+.field > span { font-size: var(--step--1); letter-spacing: 0.01em; }
+
+/* Abas com ícones */
+.tabs button { display: inline-flex; align-items: center; gap: 8px; }
+.tabs svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Painel de números: placa de box */
+.kpis {
+  background: var(--board); border: 1px solid var(--board-2); border-radius: var(--radius);
+  box-shadow: var(--shadow); gap: 0;
+}
+.kpi { background: transparent; padding: 16px 18px; border-left: 1px solid var(--board-2); }
+.kpi:first-child { border-left: 0; }
+.kpi .k-label { color: var(--board-muted); font-family: var(--f-display); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem; }
+.kpi .k-value { color: var(--board-fg); font-size: clamp(1.75rem, 6vw, 2.25rem); }
+.kpi:first-child .k-value { color: var(--board-hi); }
+.kpi .k-sub { color: var(--board-muted); }
+@media (max-width: 760px) {
+  .kpi:nth-child(3) { border-left: 0; }
+  .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--board-2); }
+}
+
+/* Linha do tempo em destaque */
+.tl-card { padding-bottom: 12px; }
+
+/* Placas e botões grandes */
+.board { border-radius: var(--radius); box-shadow: var(--shadow); }
+.btn-lap, .btn-pit { border-radius: var(--radius); box-shadow: var(--shadow); }
+.alert { border-radius: var(--radius-sm); }
+.win-bar { border-radius: 999px; }
+.pit-progress { border-radius: 999px; }
+
+/* Ajustes recolhíveis */
+.cfg { gap: 10px; padding: 14px; }
+.cfg-group { border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.cfg-group > summary {
+  list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+  font-family: var(--f-display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: var(--step--1); color: var(--ink);
+}
+.cfg-group > summary::-webkit-details-marker { display: none; }
+.cfg-group > summary small { font-family: var(--f-body); font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted); }
+.cfg-group > summary::after {
+  content: ""; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg) translateY(-2px); transition: transform 0.15s;
+}
+.cfg-group[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+.cfg-group > summary:hover { color: var(--accent); }
+.cfg-group > fieldset { padding: 0 14px 14px; }
+.cfg-group[open] { background: var(--surface); }
+
+/* Tabelas */
+table.data th { font-size: 0.75rem; }
+table.data tbody tr:not(.note-row):hover td { background: var(--surface-2); }
+
+/* Equipes */
+.team-card { gap: 10px; }
+.team-card[data-active="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+.te-pilot { border-top-style: dashed; }
+
+/* Celular: abas embaixo, como app */
+@media (max-width: 760px) {
+  .tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; margin: 0; max-width: none;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: var(--board); border-top: 1px solid var(--board-2); box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.18);
+  }
+  .tabs button {
+    flex-direction: column; justify-content: center; gap: 3px; padding: 6px 2px; min-height: 52px;
+    font-size: 0.6875rem; letter-spacing: 0.04em; border-bottom: 0; border-radius: var(--radius-sm);
+  }
+  .tabs svg { width: 22px; height: 22px; }
+  .tabs button[aria-selected="true"] { color: var(--board-hi); background: rgba(255, 255, 255, 0.07); }
+  main.wrap { padding-bottom: calc(var(--nav-h) + 40px + env(safe-area-inset-bottom, 0px)); }
+  .topbar-inner { padding-block: 8px; }
+  .card { padding: 16px; }
+}
+
+/* Botão de tema (automático / claro / escuro) */
+.theme-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; cursor: pointer;
+  border: 1px solid var(--board-2); border-radius: 999px; background: transparent; color: var(--board-fg);
+  font-family: var(--f-display); font-weight: 700; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.theme-btn:hover { border-color: var(--board-muted); }
+.theme-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: none; }
+.theme-btn svg .fill { fill: currentColor; stroke: none; }
+.theme-btn[data-theme="auto"] .ico-auto, .theme-btn[data-theme="light"] .ico-light, .theme-btn[data-theme="dark"] .ico-dark { display: block; }
+@media (max-width: 420px) { .theme-label { display: none; } .theme-btn { width: 34px; padding: 0; justify-content: center; } }
