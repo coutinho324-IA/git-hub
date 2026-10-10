@@ -4,7 +4,7 @@ App de estratégia para endurance de kart da equipe **Aristeu Just Motors**.
 
 - **Pilotos:** Kaka (piloto 1) e Guilherme Coutinho (piloto 2)
 - **Prova:** 2 horas
-- **Volta média:** 48,20 s
+- **Volta média (treino):** Kaka 48,05 s · Guilherme Coutinho 48,40 s
 - **Regra:** 3 paradas obrigatórias, com 5 minutos de permanência no box em cada uma
 
 O app roda no navegador do celular, sem instalação e sem internet depois de aberto. Ele tem quatro abas:
@@ -61,20 +61,25 @@ Os dados ficam salvos no próprio aparelho (localStorage). No dia da prova, use 
 | Perda real por parada | 5:00 + 2 s de folga + ~10 s de pit lane + ~1,5 s de pneu frio ≈ **5:13,5** |
 | Tempo de pista | ≈ **1:44:20** |
 | Voltas estimadas | ≈ **130** (129,9) |
-| Stints | 4 de ≈ **26:05** cada, cerca de **32 voltas** |
+| Stints | Kaka 2 × **30:00** (≈ 37 voltas cada) · Guilherme 2 × **22:10** (≈ 27 voltas cada) |
 
 As perdas de pit lane e volta de saída são estimativas. Meça no treino e ajuste no Plano.
 
 ### Plano base
 
+Kaka é 0,35 s por volta mais rápido, então faz stints de 30 min e o Guilherme de cerca de 22 min.
+
 | Stint | Piloto | De → até | Voltas | Entra no box |
 |---|---|---|---|---|
-| 1 | Kaka | 0:00 → 26:05 | 32,5 | volta 32 (janela V29–V35) |
-| 2 | Guilherme Coutinho | 31:19 → 57:23 | 32,5 | volta 65 (janela V62–V68) |
-| 3 | Kaka | 1:02:37 → 1:28:42 | 32,5 | volta 97 (janela V94–V100) |
-| 4 | Guilherme Coutinho | 1:33:55 → 2:00:00 | 32,5 | bandeira |
+| 1 | Kaka | 0:00 → 30:00 | 37,5 | volta 37 (janela V34–V40, prazo 35:00) |
+| 2 | Guilherme Coutinho | 35:14 → 57:23 | 27,5 | volta 65 (janela V62–V68, prazo 1:10:14) |
+| 3 | Kaka | 1:02:37 → 1:32:37 | 37,5 | volta 102 (janela V99–V105, prazo 1:37:37) |
+| 4 | Guilherme Coutinho | 1:37:50 → 2:00:00 | 27,5 | bandeira |
 
-Cada piloto faz 2 stints e cerca de 52 minutos de pista. Kaka larga e Guilherme recebe a bandeira quadriculada. Se a classificação mostrar que um dos dois é mais rápido, lance a volta média de cada um e use **Otimizar pelo ritmo**: o mais rápido ganha tempo de pista até o limite de stint (35 min por padrão).
+- **Tempo de pista:** Kaka 1:00:00 (≈ 75 voltas), Guilherme 44:20 (≈ 55 voltas).
+- **Ganho:** cerca de 3,4 s na prova em relação a dividir igual.
+- **Folga:** cada parada do Kaka fica 5 min antes do prazo. Assim sobra janela para aproveitar uma amarela ou atrasar se o piloto estiver bem.
+- **Botão Otimizar pelo ritmo:** leva o Kaka até cerca de 32,5 min por stint (≈ 5,7 s de ganho). Sempre sobram 3 voltas de janela antes do prazo, mas os stints longos cansam mais.
 
 ### Estratégia só com os dois pilotos
 
