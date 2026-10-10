@@ -217,8 +217,8 @@
         <div id="lvPre" class="card pre-start">
           <h2>Grid</h2>
           <label class="field"><span>Quem larga</span><select id="lvStarter"></select></label>
-          <p class="hint">O cronômetro roda pelo relógio do aparelho. Deixe a tela ligada e toque em largar junto com a bandeira verde.</p>
-          <button type="button" class="btn btn-go" id="btnStart">Largar</button>
+          <p class="hint">O cronômetro roda pelo relógio do aparelho. Deixe a tela ligada e toque em Iniciar prova junto com a bandeira verde.</p>
+          <button type="button" class="btn btn-go" id="btnStart">Iniciar prova</button>
           <div class="offline-box" id="offlineBox">
             <p id="offlineStatus" data-state="checking">Verificando uso sem internet…</p>
             <p class="storage-warn" id="storageWarn" hidden>Este aparelho não está salvando os dados do app. Não feche nem recarregue a página durante a prova.</p>
@@ -228,6 +228,13 @@
         </div>
 
         <!-- Pista -->
+        <!-- Prova encerrada ou corrida de exemplo: botão para começar outra -->
+        <div id="lvOver" class="card race-over" hidden>
+          <h2 id="lvOverTitle">Prova encerrada</h2>
+          <p class="hint" id="lvOverText"></p>
+          <button type="button" class="btn btn-go" id="btnNewRace">Nova corrida</button>
+        </div>
+
         <div id="lvTrack" hidden>
           <div class="driver card">
             <div class="driver-id">
