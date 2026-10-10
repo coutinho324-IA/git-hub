@@ -362,3 +362,51 @@ test('box libera em 5:03 (3 s de folga)', () => {
   near(plan.perStopLoss, 314.5);
   near(plan.stints[3].endSec, 7200, 1e-6);
 });
+
+test('comparar: 6 modelos de divisão e a divisão livre', () => {
+  assert.equal(KS.SPLIT_LAYOUTS.length, 6);
+  const count = (id) => KS.splitCells(id).cells.length;
+  assert.deepEqual(['c2', 'r2', 'c3', 'g4', 'b3', 'g6'].map(count), [2, 2, 3, 4, 3, 6]);
+  // Partes iguais: cada parte ocupa uma célula da grade.
+  const g6 = KS.splitCells('g6');
+  assert.deepEqual([g6.cols, g6.rows], [3, 2]);
+  assert.ok(g6.cells.every((c) => c.colSpan === 1 && c.rowSpan === 1));
+  assert.deepEqual(g6.cells[4], { col: 2, row: 2, colSpan: 1, rowSpan: 1 });
+  // 1 grande + 2: a primeira parte ocupa as duas linhas.
+  assert.deepEqual(KS.splitCells('b3').cells[0], { col: 1, row: 1, colSpan: 1, rowSpan: 2 });
+  // Livre: colunas × linhas, dentro dos limites.
+  const free = KS.splitCells('free', 4, 3);
+  assert.equal(free.id, 'free');
+  assert.equal(free.cells.length, 12);
+  const capped = KS.splitCells('free', 9, 0);
+  assert.deepEqual([capped.cols, capped.rows], [KS.SPLIT_MAX_COLS, 1]);
+  assert.equal(KS.splitCells('???', 'x', null).cells.length, 2);
+});
+
+test('comparar: escala da equipe, quem abre e otimizada', () => {
+  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  assert.deepEqual(KS.variantConfig(cfg, 'plan').order, cfg.order);
+  const g = KS.variantConfig(cfg, 'p2');
+  assert.equal(g.order[0], 'p2');
+  assert.equal(KS.buildPlan(g).stints[0].pilotName, 'Guilherme Coutinho');
+  // Otimizada: o mais rápido (Kaka) pilota mais e a equipe faz mais voltas.
+  const opt = KS.buildPlan(KS.variantConfig(cfg, 'opt'));
+  const base = KS.buildPlan(cfg);
+  assert.ok(opt.perPilot.p1.driveSec > opt.perPilot.p2.driveSec);
+  assert.ok(opt.totalLaps > base.totalLaps);
+  assert.equal(opt.warnings.filter((w) => w.level === 'critical').length, 0);
+  // Escala desconhecida (piloto que não existe) cai na da equipe.
+  assert.deepEqual(KS.variantConfig(cfg, 'p6').order, cfg.order);
+});
+
+test('comparar: classificação pelas voltas, com empate abaixo de meio segundo', () => {
+  const mk = (laps) => ({ totalLaps: laps, driveSec: laps * 48 });
+  const r = KS.rankByLaps([mk(129.5), mk(130), mk(129.995), mk(128)]);
+  assert.deepEqual(r.map((x) => x.pos), [3, 1, 1, 4]);
+  assert.equal(r[1].secBehind, 0);
+  assert.equal(r[2].secBehind, 0); // 0,005 volta = 0,24 s: empate
+  near(r[0].lapsBehind, 0.5);
+  near(r[0].secBehind, 24);
+  near(r[3].secBehind, 96);
+  assert.deepEqual(KS.rankByLaps([]), []);
+});
