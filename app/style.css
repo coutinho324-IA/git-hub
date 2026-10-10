@@ -677,7 +677,8 @@ body[data-tab="comparar"] main.wrap { max-width: none; padding-bottom: 20px; }
 }
 .cmp-pane {
   container: cmp / inline-size;
-  display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: auto;
+  /* relative: o que é posicionado dentro da parte fica preso nela (não alonga a página). */
+  position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: auto;
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
 }
 .cmp-head {
@@ -761,4 +762,44 @@ table.data.cmp-table th, table.data.cmp-table td { padding: 5px 6px; }
   .cmp-head { position: static; border-radius: var(--radius) var(--radius) 0 0; }
   .cmp-model { width: calc((100% - 24px) / 4); min-width: 0; }
   .tabs button { font-size: 0.625rem; letter-spacing: 0.02em; }
+}
+
+/* Menus do app dentro das partes da tela dividida. As regras de celular
+   (@media) viram regras pela largura da parte (@container). */
+.cmp-pick select.cmp-menu { flex: 0 1 190px; border-color: var(--board-muted); font-family: var(--f-display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.9375rem; }
+.cmp-menu-pane .cmp-pick select.cmp-menu { flex: 1 1 auto; max-width: 260px; }
+.cmp-num { color: var(--board-fg); }
+.cmp-menu-pane .cmp-body { background: var(--bg); padding: 12px; }
+.cmp-pane .panel { gap: 14px; }
+.cmp-pane .panel > .panel-head { display: none; }
+.cmp-pane .board-big { font-size: clamp(2.5rem, 14cqi, 6.5rem); }
+.cmp-pane .sign-text { font-size: clamp(2.25rem, 11cqi, 4.5rem); }
+.cmp-pane .kpi .k-value { font-size: clamp(1.5rem, 5cqi, 2.25rem); }
+@container cmp (max-width: 900px) {
+  .teams-layout, .plan-grid, .live-grid { grid-template-columns: minmax(0, 1fr); }
+  .plan-out { order: -1; }
+}
+@container cmp (max-width: 760px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(3) { border-left: 0; }
+  .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--board-2); }
+  .scenarios { grid-template-columns: minmax(0, 1fr); }
+}
+@container cmp (max-width: 640px) {
+  .pilot-stats, .pilot-cards { grid-template-columns: minmax(0, 1fr); }
+}
+@container cmp (max-width: 600px) {
+  table.data .wide-only { display: none; }
+  table.data td, table.data th { padding-inline: 4px; }
+  table.data .pilot-cell { gap: 4px; }
+  table.data td select { max-width: 104px; }
+  table.data td input { width: 64px; }
+}
+@container cmp (max-width: 560px) {
+  .readouts { grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .manual-lap { margin-left: 0; width: 100%; }
+  .manual-lap input { flex: 1; width: auto; }
+}
+@container cmp (max-width: 520px) {
+  .meta-ref, .facts { grid-template-columns: minmax(0, 1fr); }
 }

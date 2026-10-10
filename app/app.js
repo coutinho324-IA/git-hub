@@ -198,8 +198,9 @@
     if (!TABS.includes(tab)) tab = 'plano';
     ui.tab = tab;
     document.body.dataset.tab = tab;
+    if (tab !== 'comparar') undockAll();
     for (const t of TABS) {
-      $(`tab-${t}`).hidden = t !== tab;
+      $(`tab-${t}`).hidden = t !== tab && !docked.includes(t);
       const b = $(`t-${t}`);
       b.setAttribute('aria-selected', String(t === tab));
       b.tabIndex = t === tab ? 0 : -1;
@@ -1009,7 +1010,7 @@
     const inPit = !!race.pit;
 
     $('miniClock').textContent = isStarted ? fmtHMS(Math.max(0, T - el)) : fmtHMS(T);
-    if (ui.tab !== 'vivo' && !force) return;
+    if (!force && !cmpShows('vivo')) return;
 
     const finished = isStarted && el >= T;
     $('lvClockLabel').textContent = !isStarted ? 'Duração da prova' : finished ? 'Bandeira quadriculada' : race.pausedAt ? 'Relógio pausado' : 'Tempo restante';
@@ -1680,7 +1681,7 @@
     pitBeeps();
     renderLive(false);
     const now = Date.now();
-    if (ui.tab === 'plano' && now - lastPlanTick > 5000) { lastPlanTick = now; renderTimeline(); }
+    if (cmpShows('plano') && now - lastPlanTick > 5000) { lastPlanTick = now; renderTimeline(); }
   }, 250);
 
   // ======================= TEMA =======================
@@ -1801,7 +1802,8 @@
   $('teamSelect').addEventListener('change', (e) => useTeam(e.target.value));
   $('btnEditTeams').addEventListener('click', () => {
     editor.open(activeTeamId);
-    setTab('equipes');
+    if (cmpShows('equipes')) renderTeams();
+    else setTab('equipes');
   });
 
   function renderTeamSummary() {
@@ -1935,6 +1937,7 @@
         ? 'Equipe salva. O plano já foi refeito com os dados novos.'
         : 'Equipe salva. Toque em Usar na lista para correr com ela.';
       renderTeamList();
+      if (ui.tab === 'comparar') renderCompare();
     });
 
     $('te-cancel').addEventListener('click', () => open(editingId === 'new' ? activeTeamId : editingId));
@@ -1951,6 +1954,7 @@
       open(activeTeamId);
       $('te-status').textContent = 'Equipe excluída.';
       renderTeamList();
+      if (ui.tab === 'comparar') renderCompare();
     });
 
     $('btnNewTeam').addEventListener('click', () => {
@@ -2011,10 +2015,56 @@
   }
 
   // ======================= COMPARAR =======================
-  // A tela dividida em partes; cada parte mostra uma equipe com uma escala.
-  // Todas usam as regras da prova do Plano (duração, paradas, box, limites).
+  // A tela dividida em partes. Cada parte mostra um menu do app (Plano, Ao
+  // vivo, Análise, Equipes, Manual) ou a estratégia de uma equipe. As
+  // estratégias usam as regras da prova do Plano (duração, paradas, box).
   ui.cmp = Object.assign({ layout: 'c2', cols: 2, rows: 2, panes: [] }, ui.cmp || {});
   if (!Array.isArray(ui.cmp.panes)) ui.cmp.panes = [];
+
+  const CMP_MENUS = [
+    ['team', 'Estratégia de equipe'],
+    ['plano', 'Plano'],
+    ['vivo', 'Ao vivo'],
+    ['analise', 'Análise'],
+    ['equipes', 'Equipes'],
+    ['manual', 'Manual'],
+  ];
+  const DOCKABLE = CMP_MENUS.map(([m]) => m).filter((m) => m !== 'team');
+
+  // Os menus mostrados na tela dividida são as próprias abas, levadas para
+  // dentro da parte (cada uma aparece numa parte só) e devolvidas ao sair.
+  const dockHome = {};
+  for (const t of DOCKABLE) {
+    const ph = document.createComment(` aba ${t} `);
+    $(`tab-${t}`).before(ph);
+    dockHome[t] = ph;
+  }
+  let docked = [];
+  let cmpKey = '';
+  let cmpLast = [];
+  function cmpShows(t) { return ui.tab === t || docked.includes(t); }
+  function undockAll() {
+    for (const t of docked) {
+      const sec = $(`tab-${t}`);
+      dockHome[t].after(sec);
+      sec.hidden = t !== ui.tab;
+    }
+    docked = [];
+    cmpKey = '';
+  }
+  function dockInto(t, host) {
+    const sec = $(`tab-${t}`);
+    host.appendChild(sec);
+    sec.hidden = false;
+    docked.push(t);
+  }
+  function renderMenu(t) {
+    if (t === 'equipes') renderTeams();
+    else if (t === 'plano') renderPlan();
+    else if (t === 'vivo') renderLive(true);
+    else if (t === 'analise') renderAnalysis();
+    else if (t === 'manual') renderManual();
+  }
 
   const mkEl = (tag, cls, text) => {
     const e = document.createElement(tag);
@@ -2050,22 +2100,76 @@
     return out;
   }
 
-  function cmpPane(i, defaults) {
-    const saved = ui.cmp.panes[i];
-    const team = saved && teams.find((t) => t.id === saved.teamId);
+  /** O que a parte i mostra. Um menu já usado numa parte anterior vira estratégia de equipe. */
+  function cmpPane(i, defaults, used) {
+    const saved = ui.cmp.panes[i] || {};
+    if (DOCKABLE.includes(saved.menu) && !used.has(saved.menu)) {
+      used.add(saved.menu);
+      return { menu: saved.menu };
+    }
+    const team = teams.find((t) => t.id === saved.teamId);
     if (team) {
       const ok = cmpViews(team).some(([v]) => v === saved.view);
-      return { team, view: ok ? saved.view : 'plan' };
+      return { menu: 'team', team, view: ok ? saved.view : 'plan' };
     }
     const d = defaults[i % defaults.length];
-    return { team: teams.find((t) => t.id === d.teamId), view: d.view };
+    return { menu: 'team', team: teams.find((t) => t.id === d.teamId), view: d.view };
+  }
+
+  function storePane(i, value) {
+    while (ui.cmp.panes.length <= i) ui.cmp.panes.push(null);
+    ui.cmp.panes[i] = value;
   }
 
   function setPane(i, teamId, view) {
-    while (ui.cmp.panes.length <= i) ui.cmp.panes.push(null);
-    ui.cmp.panes[i] = { teamId, view };
+    storePane(i, { menu: 'team', teamId, view });
     save();
     renderCompare();
+  }
+
+  /** Troca o menu da parte i. Se o menu já está em outra parte, as duas trocam de lugar. */
+  function setPaneMenu(i, menu) {
+    const prev = cmpLast[i];
+    const keep = (q) => (q.menu === 'team' ? { menu: 'team', teamId: q.team.id, view: q.view } : { menu: q.menu });
+    if (menu === 'team') {
+      storePane(i, { menu: 'team' });
+    } else {
+      const other = cmpLast.findIndex((q, k) => k !== i && q.menu === menu);
+      if (other >= 0 && prev) storePane(other, keep(prev));
+      storePane(i, { menu });
+    }
+    save();
+    renderCompare();
+  }
+
+  function cmpMenuSelect(p) {
+    const sel = mkEl('select', 'cmp-menu');
+    sel.setAttribute('aria-label', `O que mostrar na parte ${p.i + 1}`);
+    sel.replaceChildren(...CMP_MENUS.map(([v, label]) => {
+      const o = mkEl('option', null, label);
+      o.value = v;
+      return o;
+    }));
+    sel.value = p.menu;
+    sel.addEventListener('change', () => setPaneMenu(p.i, sel.value));
+    return sel;
+  }
+
+  function cmpArea(cell) { return `${cell.row} / ${cell.col} / span ${cell.rowSpan} / span ${cell.colSpan}`; }
+
+  /** Parte que mostra um menu do app (a aba é colocada no corpo depois). */
+  function menuPaneEl(p) {
+    const pane = mkEl('article', 'cmp-pane cmp-menu-pane');
+    pane.style.gridArea = cmpArea(p.cell);
+    pane.dataset.menu = p.menu;
+    const name = CMP_MENUS.find(([m]) => m === p.menu)[1];
+    pane.setAttribute('aria-label', `Parte ${p.i + 1}: ${name}`);
+    const head = mkEl('header', 'cmp-head');
+    const pick = mkEl('div', 'cmp-pick');
+    pick.appendChild(cmpMenuSelect(p));
+    head.append(mkEl('span', 'cmp-pos cmp-num', String(p.i + 1)), pick);
+    pane.append(head, mkEl('div', 'cmp-body'));
+    return pane;
   }
 
   // Modelos de divisão (miniaturas) e divisão livre.
@@ -2187,21 +2291,41 @@
     grid.style.setProperty('--cmp-cols', split.cols);
     grid.style.setProperty('--cmp-rows', split.rows);
     const defaults = cmpDefaults();
+    const used = new Set();
     const panes = split.cells.map((cell, i) => {
-      const { team, view } = cmpPane(i, defaults);
-      const pcfg = KS.variantConfig(teamCfg(team), view);
-      const p = { i, cell, team, view, cfg: pcfg, plan: KS.buildPlan(pcfg) };
-      p.targets = KS.paceTargets(p.plan);
+      const p = { i, cell, ...cmpPane(i, defaults, used) };
+      if (p.menu === 'team') {
+        p.cfg = KS.variantConfig(teamCfg(p.team), p.view);
+        p.plan = KS.buildPlan(p.cfg);
+        p.targets = KS.paceTargets(p.plan);
+      }
       return p;
     });
-    const ranks = KS.rankByLaps(panes.map((p) => p.plan));
+    cmpLast = panes;
+    // Classificação só entre as partes que mostram estratégia de equipe.
+    const teamPanes = panes.filter((p) => p.menu === 'team');
+    const ranks = KS.rankByLaps(teamPanes.map((p) => p.plan));
+    teamPanes.forEach((p, k) => { p.rank = ranks[k]; });
     // Vantagem de quem está na frente sobre o próximo colocado, em segundos.
     const behind = ranks.filter((r) => r.secBehind > 0).map((r) => r.secBehind);
     const lead = behind.length ? Math.min(...behind) : 0;
-    grid.replaceChildren(...panes.map((p) => cmpPaneEl(p, ranks[p.i], panes.length, lead)));
+    const build = (p) => (p.menu === 'team' ? cmpPaneEl(p, p.rank, teamPanes.length, lead) : menuPaneEl(p));
+
+    // Mesma divisão e mesmos menus: só refaz as estratégias, sem mexer nas
+    // abas (quem está digitando no Plano não perde o campo).
+    const key = JSON.stringify([split.id, split.cols, split.rows, panes.map((p) => p.menu)]);
+    if (key !== cmpKey || grid.children.length !== panes.length) {
+      undockAll();
+      grid.replaceChildren(...panes.map(build));
+      for (const p of panes) if (p.menu !== 'team') dockInto(p.menu, grid.children[p.i].querySelector('.cmp-body'));
+      cmpKey = key;
+    } else {
+      for (const p of teamPanes) grid.replaceChild(build(p), grid.children[p.i]);
+    }
     sizeCompare(split);
     // A linha do tempo usa a largura final de cada parte.
-    panes.forEach((p) => cmpTimeline(grid.children[p.i].querySelector('.cmp-tl'), p));
+    teamPanes.forEach((p) => cmpTimeline(grid.children[p.i].querySelector('.cmp-tl'), p));
+    for (const p of panes) if (p.menu !== 'team') renderMenu(p.menu);
   }
 
   function cmpPilotVar(id) { return `var(${PILOT_VARS[Number(String(id).slice(1)) - 1] || '--p1'})`; }
@@ -2210,7 +2334,8 @@
     const { team, view, plan, targets } = p;
     const c = p.cfg;
     const pane = mkEl('article', 'cmp-pane');
-    pane.style.gridArea = `${p.cell.row} / ${p.cell.col} / span ${p.cell.rowSpan} / span ${p.cell.colSpan}`;
+    pane.style.gridArea = cmpArea(p.cell);
+    pane.dataset.menu = 'team';
     pane.dataset.pos = String(rank.pos);
     pane.setAttribute('aria-label', `Parte ${p.i + 1}: ${team.name}`);
 
@@ -2237,7 +2362,7 @@
     viewSel.value = view;
     viewSel.addEventListener('change', () => setPane(p.i, team.id, viewSel.value));
     const pick = mkEl('div', 'cmp-pick');
-    pick.append(teamSel, viewSel);
+    pick.append(cmpMenuSelect(p), teamSel, viewSel);
     head.append(pos, pick);
     pane.appendChild(head);
 
@@ -2363,6 +2488,13 @@
         cfg = KS.variantConfig(cfg, view);
         planNotes = [`Escala "${label}" trazida da comparação.`];
         updatePlan();
+      }
+      // Com o Plano aberto em outra parte da tela, fica tudo na mesma tela.
+      if (cmpShows('plano')) {
+        renderCompare();
+        const pane = $('tab-plano').closest('.cmp-pane');
+        if (pane) pane.scrollTop = 0;
+        return;
       }
       setTab('plano');
       window.scrollTo(0, 0);

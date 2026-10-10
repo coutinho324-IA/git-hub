@@ -13,7 +13,7 @@ O app roda no navegador do celular, sem instalação e sem internet depois de ab
 |---|---|
 | **Equipes** | Cadastra, edita e exclui equipes: nome da equipe, oficina, quantidade de pilotos (1 a 6), nome e volta média de cada piloto. A equipe em uso alimenta o resto do app e guarda a própria escala de stints. |
 | **Plano** | Calcula stints, paradas, janelas e voltas estimadas. Todos os números do regulamento são editáveis. |
-| **Comparar** | Divide a tela em partes, cada uma com uma equipe e uma escala, para analisar as estratégias juntas e ver quem termina com mais voltas. |
+| **Comparar** | Divide a tela em partes e mostra tudo ao mesmo tempo: cada parte pode ter um menu do app (Plano, Ao vivo, Análise, Equipes, Manual) ou a estratégia de uma equipe. |
 | **Ao vivo** | Cronômetro da prova, o que mostrar na placa de box, contagem regressiva de 5:00 com bipes, alerta de janela de parada, bandeira amarela e queda de ritmo. Registrar voltas é opcional: as paradas são chamadas pelo relógio. |
 | **Análise** | Média, melhor volta e consistência de cada piloto, gráfico volta a volta e segundos perdidos em cada parada. |
 | **Manual** | Ficha de cada piloto, regras na pista, placa de box e roteiro da troca, com os números recalculados a partir da configuração. |
@@ -112,7 +112,7 @@ As duas dão praticamente o mesmo total de voltas, porque cada piloto pilota qua
 
 ### Comparar estratégias na tela dividida
 
-A aba **Comparar** mostra várias equipes ao mesmo tempo, uma em cada parte da tela. Escolha a divisão por uma das miniaturas:
+A aba **Comparar** divide a tela e mostra várias coisas ao mesmo tempo. Escolha a divisão por uma das miniaturas:
 
 | Modelo | Partes |
 |---|---|
@@ -124,7 +124,14 @@ A aba **Comparar** mostra várias equipes ao mesmo tempo, uma em cada parte da t
 | 6 partes | 3 × 2 |
 | Livre | você escolhe de 1 a 4 colunas e de 1 a 3 linhas (até 12 partes) |
 
-Em cada parte você escolhe a **equipe** e a **escala**:
+No primeiro seletor de cada parte você escolhe **o que ela mostra**:
+
+- **Um menu do app:** Plano, Ao vivo, Análise, Equipes ou Manual. Funciona igual à aba: dá para editar o Plano, rodar o cronômetro e registrar voltas. Exemplos: Plano de um lado e Ao vivo do outro, ou Ao vivo grande com duas estratégias ao lado (modelo 1 grande + 2).
+- **Estratégia de equipe:** pode aparecer em quantas partes quiser.
+
+Cada menu aparece numa parte só. Se você escolher um menu que já está em outra parte, as duas trocam de lugar.
+
+Na estratégia de equipe, escolha a **equipe** e a **escala**:
 
 - **Escala da equipe:** a que está salva para ela.
 - **Fulano abre:** o piloto escolhido larga e os outros revezam.
