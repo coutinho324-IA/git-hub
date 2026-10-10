@@ -16,23 +16,28 @@ O app roda no navegador do celular, sem instalação e sem internet depois de ab
 | **Análise** | Média, melhor volta e consistência de cada piloto, gráfico volta a volta e segundos perdidos em cada parada. |
 | **Manual** | Ficha de cada piloto, regras na pista, placa de box e roteiro da troca, com os números recalculados a partir da configuração. |
 
-## Usar sem internet (instalar no celular)
+## Usar sem internet
 
-O app é publicado no GitHub Pages em **https://coutinho324-ia.github.io/git-hub/app/** e fica guardado no celular depois da primeira abertura. O endereço https://coutinho324-ia.github.io/git-hub/ também leva para o app.
+Há três jeitos, do mais simples para o mais completo.
 
-1. Com internet, abra o link no celular.
-2. Instale na tela inicial:
-   - **Android (Chrome):** toque em **Instalar no celular** na aba Ao vivo, ou no menu ⋮ → Instalar app.
-   - **iPhone (Safari):** Compartilhar → Adicionar à Tela de Início.
-3. Teste: modo avião ligado, abra pelo ícone **Box AJM**. Na aba Ao vivo deve aparecer "Pronto para usar sem internet".
+### 1. Arquivo único no celular (não precisa configurar nada)
 
-Quando há sinal, o app baixa atualizações em segundo plano e usa a versão nova na próxima abertura. Os dados da prova ficam no próprio celular.
+`dist/Box-AJM.html` tem o app inteiro num arquivo só, com estilos, fontes e ícone embutidos. Guarde no celular e abra no navegador: funciona sem internet desde a primeira vez.
 
-O link do Claude (artifact) só funciona com internet. Se o sinal cair com ele já aberto, o cronômetro continua, mas ele não abre de novo sem rede.
+- **Android:** baixe o arquivo, abra pelo app Arquivos/Downloads e escolha **Abrir com Chrome**. Os dados da prova ficam salvos no celular.
+- **iPhone:** o iPhone não roda apps salvos como arquivo. Use o jeito 2 ou 3.
 
-### Ativar o GitHub Pages (uma vez só)
+Depois de mudar o app, gere o arquivo de novo com `npm run build:offline` (o teste avisa se ficou desatualizado).
 
-No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: main, pasta / (root) → Save**. Depois disso, cada mudança na `main` é publicada sozinha em 1 ou 2 minutos. O workflow `.github/workflows/tests.yml` roda os testes em cada PR e em cada push.
+### 2. Link do Claude aberto antes da largada
+
+Depois de aberto, o app roda inteiro no celular e não usa a internet. Abra o link com sinal antes da largada e não feche a página durante a prova. Se fechar, ele só abre de novo com internet.
+
+### 3. Instalar pelo GitHub Pages
+
+Se o GitHub Pages estiver ativo, o app fica em **https://coutinho324-ia.github.io/git-hub/app/**. Abra uma vez com internet e instale na tela inicial: no Android pelo botão **Instalar no celular** na aba Ao vivo; no iPhone pelo Safari em Compartilhar → Adicionar à Tela de Início. Depois disso abre pelo ícone **Box AJM**, mesmo em modo avião, e se atualiza sozinho quando há sinal.
+
+Para ativar o Pages: **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: main, pasta / (root) → Save**. Desligue a tradução automática do navegador antes: ela costuma quebrar os botões do GitHub. O workflow `.github/workflows/tests.yml` roda os testes em cada PR e em cada push.
 
 ## Como usar no computador
 
@@ -144,9 +149,14 @@ app/
   manifest.webmanifest  nome e ícone do app instalado
   fonts/                fontes Barlow e Saira Condensed (licença SIL OFL)
   icons/                ícones do app
+dist/
+  Box-AJM.html          app inteiro num arquivo só (gerado por npm run build:offline)
+scripts/
+  build-offline.js      gera dist/Box-AJM.html
 tests/
   strategy.test.js      cálculos do plano e do modo ao vivo
   offline.test.js       todos os arquivos do app estão no cache offline
+  build.test.js         arquivo único sem dependências e atualizado
 .github/workflows/
   tests.yml             roda os testes em cada PR e push
 index.html              leva o endereço raiz do site para app/

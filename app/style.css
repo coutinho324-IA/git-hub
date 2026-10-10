@@ -304,7 +304,7 @@ table.data .muted { color: var(--muted); }
 #offlineStatus[data-state="ready"] { color: var(--good-ink); font-weight: 600; }
 #offlineStatus[data-state="ready"]::before { background: var(--good); }
 #offlineStatus[data-state="unsupported"]::before { background: var(--warn); }
-.offline-box a { color: var(--accent); font-weight: 600; word-break: break-all; }
+.offline-box .storage-warn { color: var(--warn-ink); font-weight: 600; }
 .driver { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
 .driver-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .driver-id strong { font-family: var(--f-display); font-size: var(--step-3); font-weight: 800; text-transform: uppercase; line-height: 1; }
