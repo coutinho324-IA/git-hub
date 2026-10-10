@@ -4,7 +4,7 @@
 
   const KS = window.KartStrategy;
   const STORAGE_KEY = 'ajm-kart-v1';
-  const TABS = ['equipes', 'plano', 'vivo', 'analise', 'manual'];
+  const TABS = ['equipes', 'plano', 'comparar', 'vivo', 'analise', 'manual'];
   // Uma cor por posição do piloto no cadastro (até 6) e a cor do texto sobre ela.
   const PILOT_VARS = ['--p1', '--p2', '--p3', '--p4', '--p5', '--p6'];
   const PILOT_ON = ['#ffffff', '#111517', '#111517', '#111517', '#111517', '#ffffff'];
@@ -197,6 +197,7 @@
   function setTab(tab) {
     if (!TABS.includes(tab)) tab = 'plano';
     ui.tab = tab;
+    document.body.dataset.tab = tab;
     for (const t of TABS) {
       $(`tab-${t}`).hidden = t !== tab;
       const b = $(`t-${t}`);
@@ -226,6 +227,7 @@
   function renderTab() {
     if (ui.tab === 'equipes') renderTeams();
     else if (ui.tab === 'plano') renderPlan();
+    else if (ui.tab === 'comparar') renderCompare();
     else if (ui.tab === 'vivo') renderLive(true);
     else if (ui.tab === 'analise') renderAnalysis();
     else renderManual();
@@ -784,6 +786,8 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
       if (ui.tab === 'plano') renderTimeline();
+      // No celular a barra do navegador some ao rolar e dispara resize: só a largura importa.
+      if (ui.tab === 'comparar' && (window.innerWidth !== cmpWidth || window.innerWidth > 760)) renderCompare();
       if (ui.tab === 'analise') renderLapChart();
     }, 150);
   });
@@ -2004,6 +2008,437 @@
   function renderTeams() {
     if (!editor.current() || (editor.current() !== 'new' && !teams.some((t) => t.id === editor.current()))) editor.open(activeTeamId);
     renderTeamList();
+  }
+
+  // ======================= COMPARAR =======================
+  // A tela dividida em partes; cada parte mostra uma equipe com uma escala.
+  // Todas usam as regras da prova do Plano (duração, paradas, box, limites).
+  ui.cmp = Object.assign({ layout: 'c2', cols: 2, rows: 2, panes: [] }, ui.cmp || {});
+  if (!Array.isArray(ui.cmp.panes)) ui.cmp.panes = [];
+
+  const mkEl = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+
+  /** Configuração da equipe nas regras atuais (a equipe em uso é o próprio plano). */
+  function teamCfg(team) {
+    return team.id === activeTeamId ? cfg : KS.applyTeam(cfg, team);
+  }
+
+  function cmpViews(team) {
+    const pilots = team.id === activeTeamId ? cfg.pilots : team.pilots;
+    return [
+      ['plan', 'Escala da equipe'],
+      ...(pilots.length > 1 ? pilots.map((p, i) => [`p${i + 1}`, `${firstName(p.name)} abre`]) : []),
+      ['opt', 'Otimizada pelo ritmo'],
+    ];
+  }
+
+  /** Sugestão para as partes sem escolha: cada equipe com a escala dela, depois as variações. */
+  function cmpDefaults() {
+    const out = teams.map((t) => ({ teamId: t.id, view: 'plan' }));
+    for (const t of teams) {
+      const first = teamCfg(t).order[0];
+      for (const [view] of cmpViews(t)) {
+        if (view !== 'plan' && view !== 'opt' && view !== first) out.push({ teamId: t.id, view });
+      }
+    }
+    for (const t of teams) out.push({ teamId: t.id, view: 'opt' });
+    return out;
+  }
+
+  function cmpPane(i, defaults) {
+    const saved = ui.cmp.panes[i];
+    const team = saved && teams.find((t) => t.id === saved.teamId);
+    if (team) {
+      const ok = cmpViews(team).some(([v]) => v === saved.view);
+      return { team, view: ok ? saved.view : 'plan' };
+    }
+    const d = defaults[i % defaults.length];
+    return { team: teams.find((t) => t.id === d.teamId), view: d.view };
+  }
+
+  function setPane(i, teamId, view) {
+    while (ui.cmp.panes.length <= i) ui.cmp.panes.push(null);
+    ui.cmp.panes[i] = { teamId, view };
+    save();
+    renderCompare();
+  }
+
+  // Modelos de divisão (miniaturas) e divisão livre.
+  const FREE_NAME = 'Livre';
+  function cmpThumb(split) {
+    const th = mkEl('span', 'cmp-thumb');
+    th.style.gridTemplateColumns = `repeat(${split.cols}, 1fr)`;
+    th.style.gridTemplateRows = `repeat(${split.rows}, 1fr)`;
+    for (const c of split.cells) {
+      const i = mkEl('i');
+      i.style.gridArea = `${c.row} / ${c.col} / span ${c.rowSpan} / span ${c.colSpan}`;
+      th.appendChild(i);
+    }
+    return th;
+  }
+
+  function renderCmpModels(split) {
+    const wrap = $('cmpModels');
+    const models = [...KS.SPLIT_LAYOUTS.map((l) => ({ id: l.id, name: l.name })), { id: 'free', name: FREE_NAME }];
+    wrap.replaceChildren(...models.map((m) => {
+      const b = mkEl('button', 'cmp-model');
+      b.type = 'button';
+      b.setAttribute('role', 'radio');
+      b.dataset.layout = m.id;
+      const on = split.id === m.id;
+      b.setAttribute('aria-checked', String(on));
+      b.tabIndex = on ? 0 : -1;
+      const s = m.id === 'free' ? KS.splitCells('free', ui.cmp.cols, ui.cmp.rows) : KS.splitCells(m.id);
+      const name = m.id === 'free' ? `${FREE_NAME} ${s.cols}×${s.rows}` : m.name;
+      b.append(cmpThumb(s), mkEl('span', 'cmp-model-name', name));
+      b.title = m.id === 'free' ? 'Você escolhe colunas e linhas' : `${m.name}: ${s.cells.length} partes`;
+      return b;
+    }));
+    $('cmpFree').hidden = split.id !== 'free';
+    $('cmpCols').value = String(split.id === 'free' ? split.cols : ui.cmp.cols);
+    $('cmpRows').value = String(split.id === 'free' ? split.rows : ui.cmp.rows);
+  }
+
+  function chooseLayout(id) {
+    ui.cmp.layout = id;
+    save();
+    renderCompare();
+    const b = $('cmpModels').querySelector(`[data-layout="${id}"]`);
+    if (b) b.focus();
+  }
+  $('cmpModels').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-layout]');
+    if (b) chooseLayout(b.dataset.layout);
+  });
+  $('cmpModels').addEventListener('keydown', (e) => {
+    const keys = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    const ids = [...$('cmpModels').querySelectorAll('[data-layout]')].map((b) => b.dataset.layout);
+    const i = ids.indexOf(KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows).id);
+    chooseLayout(ids[(i + keys[e.key] + ids.length) % ids.length]);
+  });
+
+  function fillCount(sel, max, word) {
+    sel.replaceChildren(...Array.from({ length: max }, (_, i) => {
+      const o = mkEl('option', null, `${i + 1} ${i === 0 ? word : `${word}s`}`);
+      o.value = String(i + 1);
+      return o;
+    }));
+  }
+  fillCount($('cmpCols'), KS.SPLIT_MAX_COLS, 'coluna');
+  fillCount($('cmpRows'), KS.SPLIT_MAX_ROWS, 'linha');
+  for (const [id, key] of [['cmpCols', 'cols'], ['cmpRows', 'rows']]) {
+    $(id).addEventListener('change', (e) => {
+      ui.cmp[key] = Number(e.target.value);
+      save();
+      renderCompare();
+    });
+  }
+
+  // Tela cheia: a comparação ocupa a tela toda do notebook (Esc sai).
+  const cmpSection = $('tab-comparar');
+  const fsElement = () => document.fullscreenElement || document.webkitFullscreenElement || null;
+  const canFullscreen = !!(cmpSection.requestFullscreen || cmpSection.webkitRequestFullscreen);
+  $('btnCmpFull').hidden = !canFullscreen;
+  $('btnCmpFull').addEventListener('click', () => {
+    if (fsElement()) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      return;
+    }
+    const req = cmpSection.requestFullscreen || cmpSection.webkitRequestFullscreen;
+    const p = req.call(cmpSection);
+    if (p && p.catch) p.catch(() => { /* navegador recusou */ });
+  });
+  function onFullscreen() {
+    const on = fsElement() === cmpSection;
+    $('btnCmpFull').textContent = on ? 'Sair da tela cheia' : 'Tela cheia';
+    // A dica flutuante precisa estar dentro do elemento em tela cheia para aparecer.
+    (on ? cmpSection : document.body).appendChild(tip);
+    hideTip();
+    if (ui.tab === 'comparar') requestAnimationFrame(renderCompare);
+  }
+  document.addEventListener('fullscreenchange', onFullscreen);
+  document.addEventListener('webkitfullscreenchange', onFullscreen);
+
+  /** Altura da grade: a tela abaixo do topo fixo (no celular, as partes empilham). */
+  function sizeCompare(split) {
+    const grid = $('cmpGrid');
+    if (fsElement() === cmpSection || window.matchMedia('(max-width: 760px)').matches) {
+      grid.style.height = '';
+      return;
+    }
+    const top = document.querySelector('.topbar').offsetHeight;
+    grid.style.height = `${Math.max(split.rows * 240, window.innerHeight - top - 24)}px`;
+  }
+
+  let cmpWidth = 0;
+  function renderCompare() {
+    cmpWidth = window.innerWidth;
+    const split = KS.splitCells(ui.cmp.layout, ui.cmp.cols, ui.cmp.rows);
+    renderCmpModels(split);
+    const grid = $('cmpGrid');
+    grid.dataset.layout = split.id;
+    grid.style.setProperty('--cmp-cols', split.cols);
+    grid.style.setProperty('--cmp-rows', split.rows);
+    const defaults = cmpDefaults();
+    const panes = split.cells.map((cell, i) => {
+      const { team, view } = cmpPane(i, defaults);
+      const pcfg = KS.variantConfig(teamCfg(team), view);
+      const p = { i, cell, team, view, cfg: pcfg, plan: KS.buildPlan(pcfg) };
+      p.targets = KS.paceTargets(p.plan);
+      return p;
+    });
+    const ranks = KS.rankByLaps(panes.map((p) => p.plan));
+    // Vantagem de quem está na frente sobre o próximo colocado, em segundos.
+    const behind = ranks.filter((r) => r.secBehind > 0).map((r) => r.secBehind);
+    const lead = behind.length ? Math.min(...behind) : 0;
+    grid.replaceChildren(...panes.map((p) => cmpPaneEl(p, ranks[p.i], panes.length, lead)));
+    sizeCompare(split);
+    // A linha do tempo usa a largura final de cada parte.
+    panes.forEach((p) => cmpTimeline(grid.children[p.i].querySelector('.cmp-tl'), p));
+  }
+
+  function cmpPilotVar(id) { return `var(${PILOT_VARS[Number(String(id).slice(1)) - 1] || '--p1'})`; }
+
+  function cmpPaneEl(p, rank, count, lead) {
+    const { team, view, plan, targets } = p;
+    const c = p.cfg;
+    const pane = mkEl('article', 'cmp-pane');
+    pane.style.gridArea = `${p.cell.row} / ${p.cell.col} / span ${p.cell.rowSpan} / span ${p.cell.colSpan}`;
+    pane.dataset.pos = String(rank.pos);
+    pane.setAttribute('aria-label', `Parte ${p.i + 1}: ${team.name}`);
+
+    // Topo: posição, equipe e escala.
+    const head = mkEl('header', 'cmp-head');
+    const pos = mkEl('span', 'cmp-pos', count > 1 ? `${rank.pos}º` : String(p.i + 1));
+    pos.title = count > 1 ? `${rank.pos}º em voltas entre as partes da tela` : 'Parte 1';
+    const teamSel = mkEl('select', 'cmp-team');
+    teamSel.setAttribute('aria-label', `Equipe da parte ${p.i + 1}`);
+    teamSel.replaceChildren(...teams.map((t) => {
+      const o = mkEl('option', null, t.workshop ? `${t.name} (${t.workshop})` : t.name);
+      o.value = t.id;
+      return o;
+    }));
+    teamSel.value = team.id;
+    teamSel.addEventListener('change', () => setPane(p.i, teamSel.value, 'plan'));
+    const viewSel = mkEl('select', 'cmp-view');
+    viewSel.setAttribute('aria-label', `Escala da parte ${p.i + 1}`);
+    viewSel.replaceChildren(...cmpViews(team).map(([v, label]) => {
+      const o = mkEl('option', null, label);
+      o.value = v;
+      return o;
+    }));
+    viewSel.value = view;
+    viewSel.addEventListener('change', () => setPane(p.i, team.id, viewSel.value));
+    const pick = mkEl('div', 'cmp-pick');
+    pick.append(teamSel, viewSel);
+    head.append(pos, pick);
+    pane.appendChild(head);
+
+    const body = mkEl('div', 'cmp-body');
+
+    // Pilotos.
+    const ul = mkEl('ul', 'cmp-pilots');
+    c.pilots.forEach((pl) => {
+      const li = mkEl('li');
+      const dot = mkEl('i', 'dot');
+      dot.style.background = cmpPilotVar(pl.id);
+      const drive = plan.perPilot[pl.id];
+      li.append(dot, mkEl('span', null, firstName(pl.name)), mkEl('b', null, `${fmtLap(pl.lapSec)} s`));
+      li.title = `${pl.name}: ${fmtClock(drive.driveSec)} de pista em ${drive.stints} ${drive.stints === 1 ? 'turno' : 'turnos'}`;
+      ul.appendChild(li);
+    });
+    body.appendChild(ul);
+
+    // Números principais.
+    const kp = mkEl('div', 'cmp-kpis');
+    const kpi = (label, value, sub, cls) => {
+      const d = mkEl('div', `cmp-kpi${cls ? ` ${cls}` : ''}`);
+      d.append(mkEl('span', 'k-label', label), mkEl('span', 'k-value', value));
+      if (sub) d.appendChild(mkEl('span', 'k-sub', sub));
+      kp.appendChild(d);
+    };
+    kpi('Voltas', fmtNum(plan.totalLaps, 1), `${Math.floor(plan.totalLaps)} completas`, 'is-laps');
+    if (count > 1) {
+      if (rank.secBehind > 0) {
+        const v = rank.lapsBehind;
+        kpi('Para o 1º', `−${fmtNum(rank.secBehind, 0)} s`, v < 0.05 ? 'menos de 0,1 volta' : `${fmtNum(v, 1)} ${v < 1.95 ? 'volta' : 'voltas'} atrás`, 'is-behind');
+      } else if (lead > 0) {
+        kpi('Para o 1º', 'Na frente', `+${fmtNum(lead, 0)} s sobre o próximo`, 'is-good');
+      } else {
+        kpi('Para o 1º', 'Empate', 'mesmas voltas das outras partes');
+      }
+    }
+    if (targets) {
+      const s = targets.slackSec;
+      kpi('Folga por volta', `${fmtSigned(s, 2)} s`, s >= 0 ? 'ainda chega na frente' : 'precisa andar mais', s >= 0 ? 'is-good' : 'is-behind');
+    } else {
+      kpi('Folga por volta', '–', 'informe o menor tempo');
+    }
+    body.appendChild(kp);
+
+    // Linha do tempo (desenhada depois, com a largura certa).
+    body.appendChild(mkEl('div', 'cmp-tl'));
+
+    // Turnos e paradas.
+    const tables = mkEl('div', 'cmp-tables');
+    const st = mkEl('table', 'data cmp-table');
+    st.createCaption().textContent = 'Turnos';
+    let hr = st.createTHead().insertRow();
+    for (const [label, cls] of [['#'], ['Piloto'], ['Início', 'num wide-only'], ['Fim', 'num'], ['Duração', 'num'], ['Voltas', 'num']]) {
+      const th = mkEl('th', cls || null, label);
+      hr.appendChild(th);
+    }
+    let tb = st.createTBody();
+    for (const s of plan.stints) {
+      const tr = tb.insertRow();
+      tr.insertCell().textContent = String(s.index + 1);
+      const pc = tr.insertCell();
+      const cell = mkEl('span', 'pilot-cell');
+      const dot = mkEl('i', 'dot');
+      dot.style.background = cmpPilotVar(s.pilotId);
+      cell.append(dot, document.createTextNode(firstName(s.pilotName)));
+      pc.appendChild(cell);
+      if (s.note) tr.title = s.note;
+      for (const [v, cls] of [[fmtClock(s.startSec), 'num wide-only'], [fmtClock(s.endSec), 'num'], [fmtClock(s.durSec), 'num'], [fmtNum(s.laps, 1), 'num']]) {
+        const td = tr.insertCell();
+        td.className = cls;
+        td.textContent = v;
+      }
+    }
+    tables.appendChild(st);
+
+    if (plan.stops.length) {
+      const sp = mkEl('table', 'data cmp-table');
+      sp.createCaption().textContent = 'Paradas';
+      hr = sp.createTHead().insertRow();
+      for (const [label, cls] of [['#'], ['Entra', 'num'], ['Volta', 'num'], ['Janela', 'num wide-only'], ['Sai', 'num']]) {
+        hr.appendChild(mkEl('th', cls || null, label));
+      }
+      tb = sp.createTBody();
+      for (const s of plan.stops) {
+        const tr = tb.insertRow();
+        tr.insertCell().textContent = String(s.index + 1);
+        for (const [v, cls] of [[fmtClock(s.inSec), 'num'], [String(s.lap), 'num'], [`${fmtClock(s.window.earliestSec)}–${fmtClock(s.window.latestSec)}`, 'num wide-only'], [fmtClock(s.outSec), 'num']]) {
+          const td = tr.insertCell();
+          td.className = cls;
+          td.textContent = v;
+        }
+      }
+      tables.appendChild(sp);
+    }
+    body.appendChild(tables);
+
+    // Meta por piloto para chegar na frente.
+    if (targets) {
+      const meta = mkEl('p', 'cmp-meta');
+      meta.appendChild(document.createTextNode('Máximo por volta para ficar na frente: '));
+      targets.perPilot.forEach((pp, k) => {
+        if (k) meta.appendChild(document.createTextNode(' · '));
+        meta.appendChild(document.createTextNode(`${firstName(pp.name)} `));
+        meta.appendChild(mkEl('b', null, `${fmtLap(pp.maxLapSec)} s`));
+      });
+      body.appendChild(meta);
+    }
+
+    const crit = plan.warnings.filter((w) => w.level === 'critical');
+    if (crit.length) body.appendChild(alertEl({ level: 'critical', text: crit[0].text }));
+    else if (plan.warnings.length) body.appendChild(alertEl(plan.warnings[0]));
+
+    // Levar para o Plano.
+    const row = mkEl('div', 'btn-row cmp-actions');
+    const inUse = team.id === activeTeamId && view === 'plan';
+    const use = mkEl('button', inUse ? 'btn btn-ghost' : 'btn', inUse ? 'Abrir no Plano' : 'Usar no Plano');
+    use.type = 'button';
+    use.addEventListener('click', () => {
+      if (team.id !== activeTeamId) useTeam(team.id);
+      if (view !== 'plan') {
+        const label = (cmpViews(activeTeam()).find(([v]) => v === view) || [])[1];
+        cfg = KS.variantConfig(cfg, view);
+        planNotes = [`Escala "${label}" trazida da comparação.`];
+        updatePlan();
+      }
+      setTab('plano');
+      window.scrollTo(0, 0);
+    });
+    row.appendChild(use);
+    if (inUse) row.appendChild(mkEl('span', 'in-use-chip', 'Em uso'));
+    body.appendChild(row);
+
+    pane.appendChild(body);
+    return pane;
+  }
+
+  function cmpTimeline(host, p) {
+    if (!host) return;
+    const { plan } = p;
+    const c = p.cfg;
+    const W = Math.max(200, host.clientWidth || 400);
+    const H = 66;
+    const barY = 20;
+    const barH = 24;
+    const T = plan.raceSec;
+    const x = (s) => (Math.max(0, Math.min(T, s)) / T) * W;
+    const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Linha do tempo de ${c.teamName}` });
+    const hatch = `cmp-hatch-${p.i}`;
+    const pat = svgEl('pattern', { id: hatch, width: 6, height: 6, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(135)' }, svgEl('defs', {}, svg));
+    svgEl('rect', { width: 6, height: 6, fill: 'var(--surface-2)' }, pat);
+    svgEl('rect', { width: 2, height: 6, fill: 'var(--pit)' }, pat);
+
+    let stepMin = c.raceMin <= 60 ? 15 : c.raceMin <= 180 ? 30 : 60;
+    if (W >= 640) stepMin /= 2;
+    for (let m = 0; m <= c.raceMin + 1e-9; m += stepMin) {
+      const xx = x(m * 60);
+      svgEl('line', { x1: xx, x2: xx, y1: barY - 3, y2: barY + barH + 3, class: 'svg-grid' }, svg);
+      const anchor = m === 0 ? 'start' : m >= c.raceMin - 1e-9 ? 'end' : 'middle';
+      svgText(svg, xx, barY + barH + 17, fmtClock(m * 60), 'svg-text', anchor);
+    }
+
+    const segs = [
+      ...plan.stints.map((s) => ({ type: 'stint', s, from: s.startSec, to: s.endSec })),
+      ...plan.stops.map((s) => ({ type: 'stop', s, from: s.inSec, to: s.outSec })),
+    ];
+    for (const seg of segs) {
+      const x0 = x(seg.from) + 0.5;
+      const w = Math.max(1, x(seg.to) - x(seg.from) - 1);
+      const g = svgEl('g', { class: 'seg' }, svg);
+      if (seg.type === 'stint') {
+        const idx = Number(seg.s.pilotId.slice(1)) - 1;
+        svgEl('rect', { x: x0, y: barY, width: w, height: barH, rx: 3, fill: cmpPilotVar(seg.s.pilotId) }, g);
+        const short = firstName(seg.s.pilotName);
+        const label = [short, short.slice(0, 3)].find((o) => w > o.length * 7 + 10);
+        if (label) {
+          const t = svgText(g, x0 + 5, barY + barH / 2 + 5, label, 'svg-inlabel');
+          t.setAttribute('fill', PILOT_ON[idx] || '#fff');
+        }
+      } else {
+        svgEl('rect', { x: x0, y: barY, width: w, height: barH, rx: 2, fill: `url(#${hatch})` }, g);
+        svgText(svg, x(seg.from), barY - 6, `V${seg.s.lap}`, 'svg-text-strong cmp-stop-label', 'middle');
+      }
+      g.addEventListener('pointermove', (e) => {
+        if (seg.type === 'stint') {
+          const s = seg.s;
+          showTip(e.clientX, e.clientY, `Turno ${s.index + 1} · ${c.teamName}`, [
+            { color: cmpPilotVar(s.pilotId), rect: true, value: s.pilotName },
+            { value: `${fmtClock(s.startSec)} → ${fmtClock(s.endSec)}`, label: `${fmtClock(s.durSec)} · ${fmtNum(s.laps, 1)} voltas` },
+          ]);
+        } else {
+          const s = seg.s;
+          showTip(e.clientX, e.clientY, `Parada ${s.index + 1} · ${c.teamName}`, [
+            { value: `Volta ${s.lap}`, label: `entra ${fmtClock(s.inSec)}, sai ${fmtClock(s.outSec)}` },
+            { value: `${fmtClock(s.window.earliestSec)}–${fmtClock(s.window.latestSec)}`, label: 'janela permitida' },
+          ]);
+        }
+      });
+      g.addEventListener('pointerleave', hideTip);
+    }
+    host.replaceChildren(svg);
   }
 
   function boot() {

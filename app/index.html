@@ -39,6 +39,7 @@
   <nav class="wrap tabs" role="tablist" aria-label="Seções">
     <button type="button" role="tab" id="t-equipes" data-tab="equipes" aria-controls="tab-equipes"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.6"/><path d="M16 13.6c2.8.2 5 2.2 5 5"/></svg><span>Equipes</span></button>
     <button type="button" role="tab" id="t-plano" data-tab="plano" aria-controls="tab-plano"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h13l-2.5 4.5L18 13H5"/><path d="M9 4v9M13 4v9"/></svg><span>Plano</span></button>
+    <button type="button" role="tab" id="t-comparar" data-tab="comparar" aria-controls="tab-comparar"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 12h9"/></svg><span>Comparar</span></button>
     <button type="button" role="tab" id="t-vivo" data-tab="vivo" aria-controls="tab-vivo"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M9.5 2.5h5M19 6.5l1.5-1.5"/></svg><span>Ao vivo</span></button>
     <button type="button" role="tab" id="t-analise" data-tab="analise" aria-controls="tab-analise"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M6 16l4-5 3 3 5-7"/></svg><span>Análise</span></button>
     <button type="button" role="tab" id="t-manual" data-tab="manual" aria-controls="tab-manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Manual</span></button>
@@ -195,6 +196,29 @@
         <div id="warnings" class="alerts"></div>
       </div>
     </div>
+  </section>
+
+  <!-- ============ COMPARAR ============ -->
+  <section id="tab-comparar" class="panel compare" role="tabpanel" aria-labelledby="t-comparar" hidden>
+    <div class="panel-head">
+      <h1>Comparar estratégias</h1>
+      <p class="lede">Divida a tela e escolha a equipe e a escala de cada parte. Todas seguem as regras da prova do Plano, então dá para ver quem termina com mais voltas.</p>
+    </div>
+    <div class="card cmp-bar">
+      <div class="cmp-bar-main">
+        <span class="eyebrow" id="cmpModelsLabel">Divisão da tela</span>
+        <div class="cmp-models" id="cmpModels" role="radiogroup" aria-labelledby="cmpModelsLabel"></div>
+      </div>
+      <div class="cmp-bar-side">
+        <div class="cmp-free" id="cmpFree" hidden>
+          <label class="field"><span>Colunas</span><select id="cmpCols"></select></label>
+          <label class="field"><span>Linhas</span><select id="cmpRows"></select></label>
+        </div>
+        <button type="button" class="btn btn-ghost" id="btnCmpFull">Tela cheia</button>
+      </div>
+    </div>
+    <p class="hint cmp-phone-hint">No celular as partes ficam uma embaixo da outra. Para ver lado a lado, use o notebook ou o celular deitado.</p>
+    <div class="cmp-grid" id="cmpGrid"></div>
   </section>
 
   <!-- ============ AO VIVO ============ -->

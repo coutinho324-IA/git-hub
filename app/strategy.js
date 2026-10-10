@@ -721,6 +721,74 @@
     });
   }
 
+  // ======================= COMPARAR =======================
+
+  /**
+   * Modelos de divisão da tela. `cells` = [coluna, linha, colunas ocupadas,
+   * linhas ocupadas]; sem `cells`, a grade é dividida em partes iguais.
+   */
+  const SPLIT_LAYOUTS = Object.freeze([
+    { id: 'c2', name: '2 lado a lado', cols: 2, rows: 1 },
+    { id: 'r2', name: '2 empilhadas', cols: 1, rows: 2 },
+    { id: 'c3', name: '3 lado a lado', cols: 3, rows: 1 },
+    { id: 'g4', name: '4 partes', cols: 2, rows: 2 },
+    { id: 'b3', name: '1 grande + 2', cols: 2, rows: 2, cells: [[1, 1, 1, 2], [2, 1, 1, 1], [2, 2, 1, 1]] },
+    { id: 'g6', name: '6 partes', cols: 3, rows: 2 },
+  ]);
+  const SPLIT_MAX_COLS = 4;
+  const SPLIT_MAX_ROWS = 3;
+
+  /** Partes da tela de um modelo, ou da divisão livre (colunas × linhas). */
+  function splitCells(layoutId, cols, rows) {
+    const preset = SPLIT_LAYOUTS.find((l) => l.id === layoutId);
+    const c = preset ? preset.cols : clamp(Math.round(num(cols, 2)), 1, SPLIT_MAX_COLS);
+    const r = preset ? preset.rows : clamp(Math.round(num(rows, 1)), 1, SPLIT_MAX_ROWS);
+    const cells = preset && preset.cells
+      ? preset.cells.map(([col, row, colSpan, rowSpan]) => ({ col, row, colSpan, rowSpan }))
+      : Array.from({ length: c * r }, (_, i) => ({ col: (i % c) + 1, row: Math.floor(i / c) + 1, colSpan: 1, rowSpan: 1 }));
+    return { id: preset ? preset.id : 'free', cols: c, rows: r, cells };
+  }
+
+  /**
+   * Escala mostrada numa parte da comparação: 'plan' (a da equipe), 'opt'
+   * (stints otimizados pelo ritmo) ou o id do piloto que abre ('p1', 'p2'…).
+   */
+  function variantConfig(rawCfg, view) {
+    const cfg = normalizeConfig(rawCfg);
+    if (view === 'opt') {
+      const res = optimizeStints(cfg);
+      if (!res.feasible) return cfg;
+      return normalizeConfig({ ...cfg, stintMode: 'custom', customStintMin: res.durs.slice(0, -1).map((d) => d / 60) });
+    }
+    if (view && view !== 'plan') {
+      const sc = starterScenarios(cfg).find((s) => s.starterId === view);
+      if (sc) return sc.cfg;
+    }
+    return cfg;
+  }
+
+  /**
+   * Classificação pelas voltas previstas: posição e quanto falta para o 1º,
+   * em voltas e em segundos no ritmo do 1º. Menos de meio segundo de
+   * diferença conta como empate (dividem a posição).
+   */
+  const TIE_SEC = 0.5;
+  function rankByLaps(plans) {
+    if (!plans.length) return [];
+    const best = plans.reduce((a, p) => (p.totalLaps > a.totalLaps ? p : a));
+    const bestLap = best.totalLaps > 0 ? best.driveSec / best.totalLaps : 1;
+    const tie = TIE_SEC / bestLap;
+    return plans.map((p) => {
+      const lapsBehind = Math.max(0, best.totalLaps - p.totalLaps);
+      const tied = lapsBehind < tie;
+      return {
+        pos: 1 + plans.filter((q) => q.totalLaps - p.totalLaps >= tie).length,
+        lapsBehind: tied ? 0 : lapsBehind,
+        secBehind: tied ? 0 : lapsBehind * bestLap,
+      };
+    });
+  }
+
   /** Tempo de pista acumulado por piloto, incluindo o stint em andamento. */
   function driveTimes(cfg, race, elapsed) {
     const totals = {};
@@ -761,6 +829,12 @@
     boardSign,
     paceTargets,
     starterScenarios,
+    SPLIT_LAYOUTS,
+    SPLIT_MAX_COLS,
+    SPLIT_MAX_ROWS,
+    splitCells,
+    variantConfig,
+    rankByLaps,
     driveTimes,
     mean,
     stdev,
