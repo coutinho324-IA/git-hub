@@ -227,3 +227,42 @@ test('otimizar nunca marca a parada em cima do prazo', () => {
   const plan = KS.buildPlan({ ...cfg, stintMode: 'custom', customStintMin: res.durs.slice(0, -1).map((d) => d / 60) });
   for (const s of plan.stops) assert.ok(s.idealLaps[1] > s.lap, `parada ${s.index + 1} sem janela depois do alvo`);
 });
+
+test('meta: ritmo dos líderes e folga por volta de cada piloto', () => {
+  const plan = KS.buildPlan(KS.DEFAULT_CONFIG); // menor tempo 47,60; líderes +0,80
+  const t = KS.paceTargets(plan);
+  near(t.leaderLapSec, 48.4, 1e-9);
+  near(t.leaderLaps, plan.driveSec / 48.4, 1e-9);
+  assert.ok(t.lapsAhead > 0);
+  assert.ok(t.slackSec > 0);
+  // Andando exatamente no máximo, a equipe empata com os líderes.
+  const atMax = plan.stints.reduce((a, s) => a + s.durSec / (s.lapSec + t.slackSec), 0);
+  near(atMax, t.leaderLaps, 1e-6);
+  const kaka = t.perPilot[0];
+  near(kaka.vsBest, 48.05 - 47.6, 1e-9);
+  near(kaka.maxLapSec, 48.05 + t.slackSec, 1e-9);
+});
+
+test('meta: líderes mais rápidos pedem ganho por volta; sem menor tempo não há meta', () => {
+  const fast = KS.paceTargets(KS.buildPlan({ ...KS.DEFAULT_CONFIG, leaderGapSec: 0.3 }));
+  assert.ok(fast.lapsAhead < 0);
+  assert.ok(fast.slackSec < 0);
+  assert.equal(KS.paceTargets(KS.buildPlan({ ...KS.DEFAULT_CONFIG, trackBestSec: 0 })), null);
+});
+
+test('estratégias A e B: cada piloto abre, mesmo total de voltas e mesmo tempo por piloto', () => {
+  const [a, b] = KS.starterScenarios(KS.DEFAULT_CONFIG);
+  assert.equal(a.starterName, 'Kaka');
+  assert.equal(a.finisherName, 'Guilherme Coutinho');
+  assert.ok(a.inUse);
+  assert.equal(b.starterName, 'Guilherme Coutinho');
+  assert.equal(b.finisherName, 'Kaka');
+  assert.ok(!b.inUse);
+  assert.ok(b.fastestFinishes);
+  near(a.plan.totalLaps, b.plan.totalLaps, 1e-9);
+  near(a.plan.perPilot.p1.driveSec, b.plan.perPilot.p1.driveSec, 1e-6);
+  assert.equal(a.plan.warnings.length, 0);
+  assert.equal(b.plan.warnings.length, 0);
+  near(b.plan.stints[0].durSec, a.plan.stints[1].durSec, 1e-6);
+  near(b.plan.stints[1].durSec, 30 * 60, 1e-6);
+});

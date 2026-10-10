@@ -32,6 +32,10 @@
     windowLaps: 3,
     yellowLapSec: 65,
     yellowMinStintMin: 15, // amarela só vale parada depois deste tempo de stint
+    // Referência da pista: menor tempo de volta (recorde ou melhor volta da
+    // classificação) e quanto as equipes da frente andam, em média, acima dele.
+    trackBestSec: 47.6, // 0 = não informado
+    leaderGapSec: 0.8,
     // Voltas médias medidas no treino.
     pilots: [
       { id: 'p1', name: 'Kaka', lapSec: 48.05 },
@@ -47,7 +51,7 @@
   const NUMERIC_KEYS = [
     'raceMin', 'stops', 'minPitSec', 'pitLaneLossSec', 'exitMarginSec', 'outLapLossSec',
     'maxStintMin', 'minStintMin', 'minDriveMin', 'noPitFirstMin', 'noPitLastMin',
-    'windowLaps', 'yellowLapSec', 'yellowMinStintMin',
+    'windowLaps', 'yellowLapSec', 'yellowMinStintMin', 'trackBestSec', 'leaderGapSec',
   ];
 
   function num(value, fallback) {
@@ -524,6 +528,92 @@
     return { text: 'OK', hint: 'Ritmo bom. Mantém.' };
   }
 
+  /**
+   * Metas de ritmo a partir do menor tempo da pista.
+   * Os líderes fazem as mesmas paradas e rodam em média `leaderGapSec` acima
+   * do menor tempo. `slackSec` é quanto cada piloto pode perder por volta em
+   * relação ao ritmo do plano e ainda terminar na frente (negativo = precisa
+   * ganhar esse tanto por volta).
+   */
+  function paceTargets(plan) {
+    const cfg = plan.cfg;
+    if (!(cfg.trackBestSec > 0)) return null;
+    const best = cfg.trackBestSec;
+    const leaderLap = best + cfg.leaderGapSec;
+    const leaderLaps = plan.driveSec / leaderLap;
+    const lapsWith = (delta) => plan.stints.reduce(
+      (a, st) => a + Math.max(0, st.durSec) / Math.max(1, st.lapSec + delta), 0);
+    // lapsWith diminui quando delta cresce: busca binária do empate com os líderes.
+    let lo = -20;
+    let hi = 20;
+    for (let i = 0; i < 80; i++) {
+      const mid = (lo + hi) / 2;
+      if (lapsWith(mid) > leaderLaps) lo = mid; else hi = mid;
+    }
+    const slackSec = (lo + hi) / 2;
+    const lapsAhead = plan.totalLaps - leaderLaps;
+    return {
+      trackBestSec: best,
+      leaderLapSec: leaderLap,
+      leaderLaps,
+      ourLaps: plan.totalLaps,
+      lapsAhead,
+      secAhead: lapsAhead * leaderLap,
+      slackSec,
+      perPilot: cfg.pilots.map((p) => ({
+        id: p.id,
+        name: p.name,
+        lapSec: p.lapSec,
+        vsBest: p.lapSec - best,
+        maxLapSec: p.lapSec + slackSec,
+        maxVsBest: p.lapSec + slackSec - best,
+      })),
+    };
+  }
+
+  /**
+   * Duas estratégias: cada piloto abrindo a prova. Cada piloto mantém o tempo
+   * de stint que tem no plano atual; o último stint fecha a conta.
+   */
+  function starterScenarios(rawCfg) {
+    const cfg = normalizeConfig(rawCfg);
+    const base = buildPlan(cfg);
+    const n = cfg.stops + 1;
+    const stintLen = {};
+    for (const p of cfg.pilots) {
+      const mine = base.stints.filter((st) => st.pilotId === p.id);
+      const beforeStop = mine.filter((st) => st.index < n - 1);
+      const pick = beforeStop.length ? beforeStop : mine;
+      stintLen[p.id] = pick.length ? pick.reduce((a, st) => a + st.durSec, 0) / pick.length : base.driveSec / n;
+    }
+    const currentStarter = cfg.order[0];
+    return cfg.pilots.map((starter, si) => {
+      const other = cfg.pilots[(si + 1) % cfg.pilots.length];
+      const order = Array.from({ length: n }, (_, i) => (i % 2 === 0 ? starter.id : other.id));
+      const scfg = normalizeConfig({
+        ...cfg,
+        order,
+        stintMode: cfg.stintMode,
+        customStintMin: cfg.stintMode === 'custom' ? order.slice(0, n - 1).map((id) => stintLen[id] / 60) : [],
+      });
+      const plan = buildPlan(scfg);
+      const finisher = plan.stints[plan.stints.length - 1];
+      const fastest = cfg.pilots.reduce((a, b) => (b.lapSec < a.lapSec ? b : a));
+      return {
+        starterId: starter.id,
+        starterName: starter.name,
+        finisherId: finisher.pilotId,
+        finisherName: finisher.pilotName,
+        fastestStarts: fastest.id === starter.id,
+        fastestFinishes: fastest.id === finisher.pilotId,
+        inUse: currentStarter === starter.id && cfg.order.every((id, i) => id === order[i]),
+        cfg: scfg,
+        plan,
+        targets: paceTargets(plan),
+      };
+    });
+  }
+
   /** Tempo de pista acumulado por piloto, incluindo o stint em andamento. */
   function driveTimes(cfg, race, elapsed) {
     const totals = {};
@@ -555,6 +645,8 @@
     lapStats,
     liveStatus,
     boardSign,
+    paceTargets,
+    starterScenarios,
     driveTimes,
     mean,
     stdev,

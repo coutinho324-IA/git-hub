@@ -50,6 +50,28 @@
 
     <div class="kpis" id="kpis"></div>
 
+    <section class="card meta-card" id="metaCard">
+      <div class="card-head">
+        <h2>Meta para chegar na frente</h2>
+        <span class="pill" id="metaPill" data-state="ideal">À frente</span>
+      </div>
+      <form class="meta-ref" id="refForm" autocomplete="off">
+        <label class="field"><span>Menor tempo da pista (s)</span><input id="f-trackBestSec" data-key="trackBestSec" type="number" inputmode="decimal" step="0.01" min="0"></label>
+        <label class="field"><span>Equipes da frente: quanto acima dele (s por volta)</span><input id="f-leaderGapSec" data-key="leaderGapSec" type="number" inputmode="decimal" step="0.05" min="0"></label>
+        <p class="hint field-wide">Use o recorde da pista ou a melhor volta da classificação. O ritmo das equipes da frente é uma estimativa: quem lidera uma prova de 2 h costuma andar de 0,5 a 1 s acima da melhor volta.</p>
+      </form>
+      <p class="meta-summary" id="metaSummary"></p>
+      <div class="table-wrap"><table class="data meta-table" id="metaTable"></table></div>
+    </section>
+
+    <section class="scenarios-wrap">
+      <div class="card-head">
+        <h2>Quem abre a prova</h2>
+        <p class="hint" id="scenariosHint"></p>
+      </div>
+      <div class="scenarios" id="scenarios"></div>
+    </section>
+
     <figure class="card tl-card">
       <figcaption class="card-head">
         <h2>Linha do tempo da prova</h2>
@@ -163,6 +185,7 @@
               <div>
                 <span class="eyebrow" id="lvStintLabel">Stint 1 de 4</span>
                 <strong id="lvPilot">Kaka</strong>
+                <span class="driver-meta" id="lvMeta"></span>
               </div>
             </div>
             <dl class="readouts">

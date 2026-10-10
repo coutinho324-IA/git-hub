@@ -205,9 +205,13 @@
   }
 
   // ======================= PLANO =======================
+  const CFG_FORMS = [$('cfgForm'), $('refForm')];
+
   function fillForm() {
-    for (const el of $('cfgForm').querySelectorAll('[data-key]')) el.value = cfg[el.dataset.key];
-    for (const el of $('cfgForm').querySelectorAll('[data-pilot]')) el.value = cfg.pilots[+el.dataset.pilot][el.dataset.pkey];
+    for (const form of CFG_FORMS) {
+      for (const el of form.querySelectorAll('[data-key]')) el.value = cfg[el.dataset.key];
+      for (const el of form.querySelectorAll('[data-pilot]')) el.value = cfg.pilots[+el.dataset.pilot][el.dataset.pkey];
+    }
   }
 
   function readForm(el) {
@@ -225,18 +229,20 @@
     planNotes = [];
     updatePlan();
   }
-  $('cfgForm').addEventListener('input', (e) => {
-    const el = e.target;
-    if (!isField(el)) return;
-    clearTimeout(formTimer);
-    formTimer = setTimeout(() => applyField(el), 200);
-  });
-  $('cfgForm').addEventListener('change', (e) => {
-    clearTimeout(formTimer);
-    if (isField(e.target)) applyField(e.target);
-    fillForm();
-  });
-  $('cfgForm').addEventListener('submit', (e) => e.preventDefault());
+  for (const form of CFG_FORMS) {
+    form.addEventListener('input', (e) => {
+      const el = e.target;
+      if (!isField(el)) return;
+      clearTimeout(formTimer);
+      formTimer = setTimeout(() => applyField(el), 200);
+    });
+    form.addEventListener('change', (e) => {
+      clearTimeout(formTimer);
+      if (isField(e.target)) applyField(e.target);
+      fillForm();
+    });
+    form.addEventListener('submit', (e) => e.preventDefault());
+  }
 
   armed($('btnResetCfg'), () => {
     cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
@@ -308,6 +314,8 @@
       kWrap.appendChild(d);
     }
 
+    renderMeta();
+    renderScenarios();
     renderLegend($('tlLegend'), true);
     renderTimeline();
     renderStintTable();
@@ -318,6 +326,128 @@
       const el = $(active);
       if (el && el !== document.activeElement) el.focus();
     }
+  }
+
+  function renderMeta() {
+    const t = KS.paceTargets(plan);
+    const pill = $('metaPill');
+    const summary = $('metaSummary');
+    const tbl = $('metaTable');
+    tbl.replaceChildren();
+    if (!t) {
+      pill.hidden = true;
+      summary.textContent = 'Informe o menor tempo da pista para ver quanto cada piloto precisa fazer por volta para chegar na frente.';
+      return;
+    }
+    pill.hidden = false;
+    const tight = Math.abs(t.slackSec) < 0.05;
+    pill.dataset.state = tight ? 'late' : t.slackSec > 0 ? 'ideal' : 'overdue';
+    pill.textContent = tight ? 'No limite' : t.slackSec > 0 ? 'À frente' : 'Atrás';
+
+    const b = (text) => { const e = document.createElement('b'); e.textContent = text; return e; };
+    const txt = (text) => document.createTextNode(text);
+    const laps = Math.abs(t.lapsAhead);
+    const lapsTxt = `${fmtNum(laps, 1)} ${laps < 1.95 ? 'volta' : 'voltas'} (${fmtNum(Math.abs(t.secAhead), 0)} s)`;
+    summary.replaceChildren(
+      txt(`Equipes da frente: ${fmtLap(t.leaderLapSec)} s por volta, cerca de ${fmtNum(t.leaderLaps, 1)} voltas na prova. Com os tempos atuais vocês terminam `),
+      b(lapsTxt),
+      txt(t.lapsAhead >= 0 ? ' à frente. ' : ' atrás. '),
+      txt(t.slackSec >= 0
+        ? `Cada piloto pode perder até ${fmtNum(t.slackSec, 2)} s por volta e ainda chegar na frente.`
+        : `Cada piloto precisa andar ${fmtNum(-t.slackSec, 2)} s mais rápido por volta para chegar na frente.`)
+    );
+
+    const head = tbl.createTHead().insertRow();
+    for (const [label, num, wide] of [['Piloto'], ['Ritmo do plano', 1, 1], ['vs menor tempo', 1, 1], ['Máximo p/ frente', 1], ['vs menor tempo', 1]]) {
+      const th = document.createElement('th');
+      th.textContent = label;
+      if (num) th.className = 'num';
+      if (wide) th.classList.add('wide-only');
+      head.appendChild(th);
+    }
+    const body = tbl.createTBody();
+    t.perPilot.forEach((pp, i) => {
+      const tr = body.insertRow();
+      const c0 = tr.insertCell();
+      const wrap = document.createElement('span');
+      wrap.className = 'pilot-cell';
+      const dot = document.createElement('i');
+      dot.className = 'dot';
+      dot.style.background = `var(${PILOT_VARS[i]})`;
+      wrap.append(dot, txt(firstName(pp.name)));
+      c0.appendChild(wrap);
+      for (const [v, strong, wide] of [[`${fmtLap(pp.lapSec)} s`, false, true], [`${fmtSigned(pp.vsBest, 2)} s`, false, true], [`${fmtLap(pp.maxLapSec)} s`, true], [`${fmtSigned(pp.maxVsBest, 2)} s`]]) {
+        const td = tr.insertCell();
+        td.className = wide ? 'num wide-only' : 'num';
+        if (strong) td.appendChild(b(v)); else td.textContent = v;
+      }
+    });
+  }
+
+  function renderScenarios() {
+    const list = KS.starterScenarios(cfg);
+    const wrap = $('scenarios');
+    wrap.replaceChildren();
+    const same = list.every((sc) => Math.abs(sc.plan.totalLaps - list[0].plan.totalLaps) < 1e-6);
+    $('scenariosHint').textContent = same
+      ? 'As duas dão o mesmo total de voltas: cada piloto pilota o mesmo tempo. Muda quem larga, quem fecha e em que voltas são as paradas.'
+      : 'Compare as duas e escolha a que a equipe vai usar.';
+    const mk = (tag, cls, text) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    };
+    list.forEach((sc, si) => {
+      const card = mk('section', 'card scenario');
+      card.dataset.inUse = String(sc.inUse);
+      card.style.borderTopColor = pilotVar(sc.starterId);
+      const head = mk('div', 'scenario-head');
+      const title = mk('div');
+      title.append(mk('span', 'eyebrow', `Estratégia ${String.fromCharCode(65 + si)}`), mk('h3', null, `${firstName(sc.starterName)} abre`));
+      head.appendChild(title);
+      if (sc.inUse) head.appendChild(mk('span', 'in-use-chip', 'Em uso'));
+      else {
+        const btn = mk('button', 'btn', 'Usar esta estratégia');
+        btn.type = 'button';
+        btn.addEventListener('click', () => {
+          cfg = KS.normalizeConfig({ ...sc.cfg });
+          planNotes = [`Estratégia ${String.fromCharCode(65 + si)} em uso: ${sc.starterName} larga.`];
+          updatePlan();
+        });
+        head.appendChild(btn);
+      }
+      card.appendChild(head);
+
+      const ol = mk('ol');
+      for (const st of sc.plan.stints) {
+        const li = mk('li');
+        const dot = mk('i', 'dot');
+        dot.style.background = pilotVar(st.pilotId);
+        li.append(dot, mk('span', null, `${st.index + 1}. ${firstName(st.pilotName)} · ${fmtClock(st.startSec)}–${fmtClock(st.endSec)}`), mk('span', 'muted', `~${Math.round(st.laps)} voltas`));
+        ol.appendChild(li);
+      }
+      card.appendChild(ol);
+
+      const facts = mk('div', 'facts-line');
+      const fact = (k, v) => { const s = mk('span', null, `${k} `); s.appendChild(mk('b', null, v)); facts.appendChild(s); };
+      fact('Box nas voltas', sc.plan.stops.map((p) => p.lap).join(', '));
+      const last = sc.plan.stops[sc.plan.stops.length - 1];
+      if (last) fact('Última parada', `${fmtClock(last.inSec)} (prazo ${fmtClock(last.window.latestSec)})`);
+      fact('Voltas', fmtNum(sc.plan.totalLaps, 1));
+      card.appendChild(facts);
+
+      const notes = mk('ul', 'notes');
+      notes.appendChild(mk('li', null, `${sc.starterName} larga e ${sc.finisherName} recebe a bandeira.`));
+      if (sc.fastestStarts) notes.appendChild(mk('li', null, 'O mais rápido larga: aproveita o começo, com o pelotão ainda junto, para abrir vantagem.'));
+      if (sc.fastestFinishes) notes.appendChild(mk('li', null, 'O mais rápido fecha: melhor para defender ou ganhar posição no fim.'));
+      if (sc.targets) {
+        const metas = sc.targets.perPilot.map((pp) => `${firstName(pp.name)} até ${fmtLap(pp.maxLapSec)} s`).join(' · ');
+        notes.appendChild(mk('li', null, `Meta por volta para chegar na frente: ${metas}.`));
+      }
+      card.appendChild(notes);
+      wrap.appendChild(card);
+    });
   }
 
   function renderLegend(el, withPit) {
@@ -812,6 +942,9 @@
     $('lvSwatch').style.background = pilotVar(st.pilotId);
     $('lvStintLabel').textContent = `Stint ${st.stintIndex + 1} de ${n}`;
     $('lvPilot').textContent = st.pilotName;
+    const meta = KS.paceTargets(plan);
+    const mine = meta && meta.perPilot.find((pp) => pp.id === st.pilotId);
+    $('lvMeta').textContent = mine ? `Alvo ${fmtLap(mine.lapSec)} s · máximo p/ chegar na frente ${fmtLap(mine.maxLapSec)} s` : '';
     $('lvStintTime').textContent = fmtClock(st.stintElapsed);
     $('lvStintLaps').textContent = String(race.laps.filter((l) => l.stint === st.stintIndex).length);
     const last = race.laps[race.laps.length - 1];
@@ -1386,6 +1519,8 @@
       fact('Alvo de volta', `${fmtLap(p.lapSec)} s`);
       fact('Stints', String(mine.length));
       fact('Tempo de pista', fmtClock(plan.perPilot[p.id].driveSec));
+      const t = KS.paceTargets(plan);
+      if (t) fact('Máximo p/ chegar na frente', `${fmtLap(t.perPilot[pi].maxLapSec)} s`);
       card.append(facts);
 
       if (!mine.length) {
