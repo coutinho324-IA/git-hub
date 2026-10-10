@@ -18,7 +18,7 @@ O app roda no navegador do celular, sem instalação e sem internet depois de ab
 
 ## Usar sem internet (instalar no celular)
 
-O app é publicado no GitHub Pages em **https://coutinho324-ia.github.io/git-hub/** e fica guardado no celular depois da primeira abertura.
+O app é publicado no GitHub Pages em **https://coutinho324-ia.github.io/git-hub/app/** e fica guardado no celular depois da primeira abertura. O endereço https://coutinho324-ia.github.io/git-hub/ também leva para o app.
 
 1. Com internet, abra o link no celular.
 2. Instale na tela inicial:
@@ -32,7 +32,7 @@ O link do Claude (artifact) só funciona com internet. Se o sinal cair com ele j
 
 ### Ativar o GitHub Pages (uma vez só)
 
-No GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**. Depois disso, cada mudança na `main` roda os testes e publica o app sozinha (`.github/workflows/pages.yml`).
+No GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: main, pasta / (root) → Save**. Depois disso, cada mudança na `main` é publicada sozinha em 1 ou 2 minutos. O workflow `.github/workflows/tests.yml` roda os testes em cada PR e em cada push.
 
 ## Como usar no computador
 
@@ -148,5 +148,7 @@ tests/
   strategy.test.js      cálculos do plano e do modo ao vivo
   offline.test.js       todos os arquivos do app estão no cache offline
 .github/workflows/
-  pages.yml             roda os testes e publica no GitHub Pages
+  tests.yml             roda os testes em cada PR e push
+index.html              leva o endereço raiz do site para app/
+.nojekyll               publica os arquivos como estão, sem Jekyll
 ```

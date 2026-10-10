@@ -1412,7 +1412,7 @@
   }, 250);
 
   // ======================= SEM INTERNET =======================
-  const PAGES_URL = 'https://coutinho324-ia.github.io/git-hub/';
+  const PAGES_URL = 'https://coutinho324-ia.github.io/git-hub/app/';
 
   function setupOffline() {
     const status = $('offlineStatus');
