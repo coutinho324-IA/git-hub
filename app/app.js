@@ -2203,6 +2203,35 @@
     setPanes([...cur, ...missing.map((t) => ({ menu: 'team', teamId: t.id, view: 'plan' }))].slice(0, MAX_PARTS));
   }
 
+  // Menus na tela: ligar abre o menu numa parte nova; desligar tira a parte.
+  function toggleMenu(menu) {
+    const cur = cmpLast.map(paneValue);
+    if (cur.some((v) => v.menu === menu)) {
+      const next = cur.filter((v) => v.menu !== menu);
+      if (next.length) setPanes(next);
+    } else if (cur.length < MAX_PARTS) {
+      setPanes([...cur, { menu }]);
+    }
+  }
+
+  function renderMenuChips(panes) {
+    const shown = new Set(panes.map((p) => p.menu));
+    const full = panes.length >= MAX_PARTS;
+    const list = menuOrder().filter((m) => DOCKABLE.includes(m));
+    $('cmpMenuChips').replaceChildren(...list.map((m) => {
+      const on = shown.has(m);
+      const b = mkEl('button', 'cmp-chip', menuName(m));
+      b.type = 'button';
+      b.dataset.menu = m;
+      b.setAttribute('aria-pressed', String(on));
+      b.disabled = !on && full;
+      b.title = on ? 'Tirar da tela' : full ? 'A tela já tem 12 partes' : 'Abrir na tela';
+      b.addEventListener('click', () => toggleMenu(m));
+      return b;
+    }));
+    $('cmpMenuCount').textContent = `${list.filter((m) => shown.has(m)).length} de ${list.length}`;
+  }
+
   function renderTeamChips(panes) {
     const shown = new Set(panes.filter((p) => p.menu === 'team').map((p) => p.team.id));
     const full = panes.length >= MAX_PARTS;
@@ -2387,6 +2416,7 @@
       return p;
     });
     cmpLast = panes;
+    renderMenuChips(panes);
     renderTeamChips(panes);
     // Classificação só entre as partes que mostram estratégia de equipe.
     const teamPanes = panes.filter((p) => p.menu === 'team');
@@ -2679,8 +2709,9 @@
   }
   applyMenus();
 
-  // Engrenagem: abre as configurações; tocada de novo, volta ao menu de antes.
-  $('btnConfig').addEventListener('click', () => setTab(SETTINGS_TABS.includes(ui.tab) ? prevTab : 'config'));
+  // Engrenagem: abre as configurações (também a partir do Multi telas); dentro
+  // delas, tocada de novo, volta ao menu de antes.
+  $('btnConfig').addEventListener('click', () => setTab(ui.tab === 'config' ? prevTab : 'config'));
 
   // Submenus (Menus, Multi telas, Aparência), repetidos no topo das duas telas.
   for (const nav of document.querySelectorAll('[data-subnav]')) {
