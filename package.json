@@ -1,0 +1,11 @@
+{
+  "name": "aristeu-just-motors-kart",
+  "version": "1.0.0",
+  "description": "App de estratégia para endurance de kart da equipe Aristeu Just Motors",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "python3 -m http.server 8080 --directory app"
+  },
+  "license": "UNLICENSED"
+}
