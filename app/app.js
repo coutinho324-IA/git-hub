@@ -832,7 +832,7 @@
       else if (ns.inSec > 0) main = `Alvo em ${fmtClock(ns.inSec)} · ${lapsToGo} ${lapsToGo === 1 ? 'volta' : 'voltas'}`;
       else main = 'Pare nesta volta';
       $('lvNextMain').textContent = main;
-      $('lvNextSub').textContent = `Alvo ${fmtClock(ns.targetSec)} de prova · janela ${fmtClock(ns.window.earliestSec)}–${fmtClock(ns.window.latestSec)}. Com amarela e janela aberta, pare.`;
+      $('lvNextSub').textContent = `Alvo ${fmtClock(ns.targetSec)} de prova · janela ${fmtClock(ns.window.earliestSec)}–${fmtClock(ns.window.latestSec)}. Amarela vale box a partir de ${fmtNum(cfg.yellowMinStintMin, 0)} min de stint.`;
 
       bar.hidden = false;
       const from = race.pits.length ? race.pits[race.pits.length - 1].outSec : 0;
@@ -846,6 +846,11 @@
       i.style.width = `calc(${pct(Math.min(ns.window.latestSec, ns.targetSec + half))} - ${pct(Math.max(ns.window.earliestSec, ns.targetSec - half))})`;
       now.style.left = pct(el);
     }
+
+    const sign = st.sign || { text: 'OK', hint: '' };
+    $('lvSignText').textContent = sign.text;
+    $('lvSignHint').textContent = sign.hint;
+    $('lvSign').dataset.sign = sign.text === 'BOX' ? 'box' : sign.text === 'RITMO' ? 'pace' : /^\d+$/.test(sign.text) ? 'count' : 'ok';
 
     const alerts = st.alerts.slice();
     if (race.pausedAt) alerts.unshift({ level: 'warning', text: 'Relógio pausado. Retome quando a prova voltar.' });
@@ -1330,11 +1335,70 @@
       ygain: fmtNum(Math.max(0, cfg.yellowLapSec - lap), 0),
       p1: cfg.pilots[0].name,
       p2: cfg.pilots[1].name,
+      ymin: fmtNum(cfg.yellowMinStintMin, 0),
     };
     for (const el of document.querySelectorAll('[data-m]')) {
       const v = values[el.dataset.m];
       if (v != null) el.textContent = v;
     }
+    renderPilotCards();
+  }
+
+  function renderPilotCards() {
+    const wrap = $('pilotCards');
+    wrap.replaceChildren();
+    const mk = (tag, cls, text) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    };
+    cfg.pilots.forEach((p, pi) => {
+      const mine = plan.stints.filter((s) => s.pilotId === p.id);
+      const card = mk('section', 'pcard');
+      card.style.borderTopColor = `var(${PILOT_VARS[pi]})`;
+      const head = mk('div', 'pcard-head');
+      head.append(mk('h3', null, p.name));
+      const roles = [];
+      if (plan.stints[0] && plan.stints[0].pilotId === p.id) roles.push('Larga');
+      if (plan.stints.length && plan.stints[plan.stints.length - 1].pilotId === p.id) roles.push('Recebe a bandeira');
+      if (roles.length) head.append(mk('span', 'pcard-role', roles.join(' · ')));
+      card.append(head);
+
+      const facts = mk('dl', 'pcard-facts');
+      const fact = (k, v) => { const d = mk('div'); d.append(mk('dt', null, k), mk('dd', null, v)); facts.append(d); };
+      fact('Alvo de volta', `${fmtLap(p.lapSec)} s`);
+      fact('Stints', String(mine.length));
+      fact('Tempo de pista', fmtClock(plan.perPilot[p.id].driveSec));
+      card.append(facts);
+
+      if (!mine.length) {
+        card.append(mk('p', 'hint', 'Sem stint no plano atual. Ajuste a escala na aba Plano.'));
+      }
+      const list = mk('ol', 'pcard-stints');
+      for (const s of mine) {
+        const li = mk('li');
+        li.append(mk('b', null, `Stint ${s.index + 1} · ${fmtClock(s.startSec)} → ${fmtClock(s.endSec)}`));
+        li.append(mk('span', null, `Cerca de ${Math.round(s.laps)} voltas no stint.`));
+        const stop = plan.stops[s.index];
+        if (stop) {
+          const win = stop.window.feasible ? ` Janela V${stop.idealLaps[0]}–V${stop.idealLaps[1]}, prazo ${fmtClock(stop.window.latestSec)}.` : '';
+          li.append(mk('span', null, `Box na volta ${stop.lap} da prova (relógio ${fmtClock(stop.inSec)}).${win}`));
+        } else {
+          li.append(mk('span', null, 'Sem parada no fim: leva o kart até a bandeira quadriculada.'));
+        }
+        if (s.index > 0) li.append(mk('span', 'muted', 'Volta de saída com pneu frio.'));
+        list.append(li);
+      }
+      card.append(list);
+
+      const others = plan.stints.filter((s) => s.pilotId !== p.id);
+      if (others.length) {
+        const when = others.map((s) => `${fmtClock(s.startSec)}–${fmtClock(s.endSec)}`).join(' e ');
+        card.append(mk('p', 'pcard-off', `Fora do kart (${when}): água, 10 min de descanso, depois relógio e placa.`));
+      }
+      wrap.append(card);
+    });
   }
 
   // ======================= LOOP =======================

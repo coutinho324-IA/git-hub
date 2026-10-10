@@ -12,9 +12,9 @@ O app roda no navegador do celular, sem instalação e sem internet depois de ab
 | Aba | Para que serve |
 |---|---|
 | **Plano** | Calcula stints, paradas, janelas e voltas estimadas. Todos os números do regulamento são editáveis. |
-| **Ao vivo** | Cronômetro da prova, registro de voltas, contagem regressiva de 5:00 no box com bipes, alerta de janela de parada, bandeira amarela e queda de ritmo. |
+| **Ao vivo** | Cronômetro da prova, o que mostrar na placa de box, contagem regressiva de 5:00 com bipes, alerta de janela de parada, bandeira amarela e queda de ritmo. Registrar voltas é opcional: as paradas são chamadas pelo relógio. |
 | **Análise** | Média, melhor volta e consistência de cada piloto, gráfico volta a volta e segundos perdidos em cada parada. |
-| **Manual** | A estratégia abaixo, com os números recalculados a partir da configuração. |
+| **Manual** | Ficha de cada piloto, regras na pista, placa de box e roteiro da troca, com os números recalculados a partir da configuração. |
 
 ## Como usar
 
@@ -53,25 +53,56 @@ As perdas de pit lane e volta de saída são estimativas. Meça no treino e ajus
 
 Cada piloto faz 2 stints e cerca de 52 minutos de pista. Kaka larga e Guilherme recebe a bandeira quadriculada. Se a classificação mostrar que um dos dois é mais rápido, lance a volta média de cada um e use **Otimizar pelo ritmo**: o mais rápido ganha tempo de pista até o limite de stint (35 min por padrão).
 
-### Como sair na frente
+### Estratégia só com os dois pilotos
 
-Todas as equipes ficam os mesmos 15 minutos paradas. A vantagem vem do resto, nesta ordem de impacto:
+A equipe corre contra o relógio, não contra as outras equipes. Ninguém precisa acompanhar rivais: o plano é fixo, o app diz quando parar e o piloto que está descansando cuida do relógio e da placa.
 
-1. **Ritmo e consistência.** Em 130 voltas, 0,1 s por volta vira 13 s no fim; 0,3 s vira 39 s, quase uma volta. O app avisa quando a média das 3 últimas voltas passa 0,5 s do alvo.
-2. **Parada cirúrgica.** Sair em 5:00, nem um segundo depois. 16 s de sobra em cada uma das 3 paradas custam uma volta inteira. O cronômetro de box conta regressivo, bipa nos 60, 30 e 10 s finais e mostra LIBERA. A troca de piloto e de lastro cabe dentro dos 5 minutos.
-3. **Parar sob bandeira amarela ou safety car.** Quem para enquanto o pelotão anda devagar perde menos terreno. Com volta de amarela em ~65 s, cada volta de amarela durante a parada vale cerca de 17 s sobre quem parou com bandeira verde. Por isso o plano usa janela, e não volta fixa.
-4. **Ar limpo.** Preso atrás de um kart mais lento com a janela aberta, antecipe a parada. Evite parar na mesma volta de várias equipes.
-5. **Entrada e saída do pit.** Entre no limite de velocidade sem frear antes da hora. Na volta de saída, pneu frio: freie um pouco antes nas duas primeiras curvas.
+**Onde a corrida é ganha**, do maior ganho para o menor:
 
-### Protocolo dos 5 minutos
+1. **Ritmo constante.** Em 130 voltas, 0,1 s por volta vira 13 s no fim; 0,3 s vira 39 s, quase uma volta.
+2. **Zero incidente.** Uma rodada custa de 10 a 30 s. Na largada e no pelotão, a prioridade é chegar inteiro.
+3. **Sair do box em 5:00.** 16 s de sobra em cada uma das 3 paradas custam uma volta inteira.
+4. **Parar na bandeira amarela.** Todo mundo vê a bandeira, não precisa olhar ninguém. Cada volta de amarela durante a parada vale cerca de 17 s. Regra: amarela com 15 min ou mais de stint e janela aberta = BOX.
+5. **Entrada e saída do box.** Volta de entrada forte até o limite do pit; volta de saída com cuidado, pneu frio.
 
-| Tempo no box | O que acontece |
+**Regras na pista**
+
+- Largada e volta 1: sem disputa, sem toque.
+- Pilote no seu tempo-alvo. Volta 0,5 s mais lenta: volte ao traçado de referência na seguinte.
+- Kart mais rápido chegando: deixe passar no ponto mais fácil. Defender custa mais que ceder.
+- Não passou em 2 voltas: desista e volte ao seu ritmo.
+- Problema no kart: entre no box.
+- Obedeça a placa.
+
+**Placa de box** (o app mostra qual levantar na aba Ao vivo)
+
+| Placa | O que o piloto faz |
 |---|---|
-| 0:00 | Kart na marcação. Toque em **Entrou no box**. |
-| 0:00–1:00 | Troca de piloto, lastro, banco e pedais. |
-| 1:00–3:00 | Briefing: tempo-alvo, voltas do stint, rivais. Quem saiu relata o kart e bebe água. |
+| 3, 2 | Faltam essas voltas para o box |
+| BOX | Entra no box na próxima passagem |
+| RITMO | Últimas 3 voltas mais lentas que o alvo |
+| OK | Mantém |
+
+**Quando mudar o plano**
+
+- Amarela com 15 min ou mais de stint e janela aberta: BOX.
+- RITMO três passagens seguidas com a janela aberta: piloto cansado, antecipe a parada.
+- Kart com problema: antecipe a parada.
+- Prazo chegando: BOX sempre.
+
+### A troca com só os dois pilotos
+
+Quem está fora do kart faz o papel de equipe de box.
+
+| Momento | O que acontece |
+|---|---|
+| Antes | Quem vai entrar está de capacete e luvas, com o celular, 3 voltas antes do box. |
+| 0:00 | Kart para. Quem vai entrar toca **Entrou no box** e entrega o celular para quem saiu. |
+| 0:00–1:00 | Troca de piloto. Lastro conferido. |
+| 1:00–3:00 | Quem saiu conta como está o kart; quem entra repete o alvo de volta e as voltas do stint. Água. |
 | 3:00–4:00 | Piloto sentado, cinto, luvas, viseira limpa. |
-| 4:00–5:00 | Kart pronto. Contagem em voz alta nos 10 s finais. Libera no LIBERA. |
+| 4:00–5:00 | Quem está com o celular conta os 10 s finais e libera no LIBERA. |
+| Depois | Quem saiu bebe água, descansa 10 min e volta ao relógio e à placa. |
 
 ### Confirme no regulamento
 

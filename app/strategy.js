@@ -31,6 +31,7 @@
     // Estratégia.
     windowLaps: 3,
     yellowLapSec: 65,
+    yellowMinStintMin: 15, // amarela só vale parada depois deste tempo de stint
     pilots: [
       { id: 'p1', name: 'Kaka', lapSec: 48.2 },
       { id: 'p2', name: 'Guilherme Coutinho', lapSec: 48.2 },
@@ -43,7 +44,7 @@
   const NUMERIC_KEYS = [
     'raceMin', 'stops', 'minPitSec', 'pitLaneLossSec', 'exitMarginSec', 'outLapLossSec',
     'maxStintMin', 'minStintMin', 'minDriveMin', 'noPitFirstMin', 'noPitLastMin',
-    'windowLaps', 'yellowLapSec',
+    'windowLaps', 'yellowLapSec', 'yellowMinStintMin',
   ];
 
   function num(value, fallback) {
@@ -457,8 +458,13 @@
       };
       if (state === 'overdue') out.alerts.push({ level: 'critical', text: `Prazo da parada ${done + 1} estourado. Chame para o box agora.` });
       else if (win.latestSec - elapsed < 180) out.alerts.push({ level: 'critical', text: `Faltam menos de 3 min para o prazo da parada ${done + 1}.` });
-      if (race.yellow && (state === 'open' || state === 'ideal' || state === 'late')) {
-        out.alerts.push({ level: 'good', text: 'Bandeira amarela com janela aberta: parar agora perde menos tempo que os rivais.' });
+      const windowOpen = state === 'open' || state === 'ideal' || state === 'late';
+      const stintLongEnough = out.stintElapsed >= cfg.yellowMinStintMin * 60;
+      out.yellowStop = !!race.yellow && windowOpen && stintLongEnough;
+      if (out.yellowStop) {
+        out.alerts.push({ level: 'good', text: 'Bandeira amarela com janela aberta: chame para o box. Parar agora custa menos tempo de prova.' });
+      } else if (race.yellow && state !== 'overdue') {
+        out.alerts.push({ level: 'warning', text: `Amarela, mas ${stintLongEnough ? 'a janela ainda está fechada' : `o stint tem menos de ${cfg.yellowMinStintMin} min`}. Siga o plano.` });
       }
     }
 
@@ -475,10 +481,33 @@
       const avg = mean(recent.map((l) => l.sec));
       out.recentAvg = avg;
       if (avg > pilot.lapSec + 0.5) {
+        out.paceDrop = true;
         out.alerts.push({ level: 'warning', text: `Ritmo caiu: média ${avg.toFixed(2)} s nas últimas 3 voltas (alvo ${pilot.lapSec.toFixed(2)} s).` });
       }
     }
+    out.sign = boardSign(out);
     return out;
+  }
+
+  /**
+   * O que mostrar na placa de box quando o piloto passar.
+   * BOX = entra na próxima passagem; número = voltas até o box;
+   * RITMO = está abaixo do ritmo-alvo; OK = mantém.
+   */
+  function boardSign(st) {
+    if (st.finished) return { text: 'FIM', hint: 'Prova encerrada.' };
+    const ns = st.nextStop;
+    if (ns) {
+      if (ns.state === 'overdue' || ns.state === 'late') return { text: 'BOX', hint: 'Passou do alvo. Entra no box agora.' };
+      if (st.yellowStop) return { text: 'BOX', hint: 'Amarela com janela aberta. Entra no box agora.' };
+      if (ns.state === 'ideal' || ns.state === 'open') {
+        const n = Math.round(ns.lapsToGo);
+        if (n <= 1) return { text: 'BOX', hint: 'Entra no box na próxima passagem.' };
+        if (n <= 5) return { text: String(n), hint: `Faltam ${n} voltas para o box.` };
+      }
+    }
+    if (st.paceDrop) return { text: 'RITMO', hint: 'Média das últimas 3 voltas acima do alvo.' };
+    return { text: 'OK', hint: 'Ritmo bom. Mantém.' };
   }
 
   /** Tempo de pista acumulado por piloto, incluindo o stint em andamento. */
@@ -511,6 +540,7 @@
     yellowGainPerSec,
     lapStats,
     liveStatus,
+    boardSign,
     driveTimes,
     mean,
     stdev,

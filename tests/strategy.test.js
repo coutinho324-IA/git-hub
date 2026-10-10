@@ -168,3 +168,29 @@ test('ganho por segundo de parada sob amarela', () => {
   const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
   near(KS.yellowGainPerSec(cfg, 48.2), 1 - 48.2 / 65);
 });
+
+test('amarela no começo do stint não chama para o box', () => {
+  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const plan = KS.buildPlan(cfg);
+  const race = { laps: [], pits: [], pit: null, yellow: true, stintPilots: ['p1'] };
+  const st = KS.liveStatus(cfg, plan, race, 10 * 60);
+  assert.equal(st.yellowStop, false);
+  assert.ok(st.alerts.some((a) => a.level === 'warning' && /Siga o plano/.test(a.text)));
+  assert.equal(st.sign.text, 'OK');
+  const later = KS.liveStatus(cfg, plan, race, 16 * 60);
+  assert.equal(later.yellowStop, true);
+  assert.equal(later.sign.text, 'BOX');
+});
+
+test('placa de box: OK, contagem de voltas, BOX e RITMO', () => {
+  const cfg = KS.normalizeConfig(KS.DEFAULT_CONFIG);
+  const plan = KS.buildPlan(cfg);
+  const race = { laps: [], pits: [], pit: null, yellow: false, stintPilots: ['p1'] };
+  const target = plan.stops[0].inSec;
+  assert.equal(KS.liveStatus(cfg, plan, race, 10 * 60).sign.text, 'OK');
+  assert.equal(KS.liveStatus(cfg, plan, race, target - 3 * 48.2).sign.text, '3');
+  assert.equal(KS.liveStatus(cfg, plan, race, target - 0.8 * 48.2).sign.text, 'BOX');
+  assert.equal(KS.liveStatus(cfg, plan, race, 34 * 60).sign.text, 'BOX');
+  const slow = [49.0, 48.9, 49.1].map((sec, i) => ({ n: i + 1, sec, pilot: 'p1', stint: 0, kind: 'green' }));
+  assert.equal(KS.liveStatus(cfg, plan, { ...race, laps: slow }, 10 * 60).sign.text, 'RITMO');
+});

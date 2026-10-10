@@ -86,6 +86,7 @@
           <legend>Estratégia</legend>
           <label class="field"><span>Janela ideal (± voltas)</span><input id="f-windowLaps" data-key="windowLaps" type="number" inputmode="numeric" step="1" min="0"></label>
           <label class="field"><span>Volta sob amarela/SC (s)</span><input id="f-yellowLapSec" data-key="yellowLapSec" type="number" inputmode="decimal" step="1" min="1"></label>
+          <label class="field"><span>Amarela vale box após (min de stint)</span><input id="f-yellowMinStintMin" data-key="yellowMinStintMin" type="number" inputmode="decimal" step="1" min="0"></label>
         </fieldset>
         <div class="form-foot">
           <button type="button" class="btn btn-ghost" id="btnResetCfg" data-confirm="Toque de novo para restaurar">Restaurar padrão</button>
@@ -108,7 +109,7 @@
         <section class="card">
           <div class="card-head"><h2>Paradas</h2></div>
           <div class="table-wrap"><table class="data" id="stopTable"></table></div>
-          <p class="hint">Janela ideal: a volta-alvo com a folga que você definiu, para aproveitar bandeira amarela ou fugir do tráfego. Prazo: o último momento em que ainda dá para cumprir todas as paradas dentro das regras.</p>
+          <p class="hint">Janela ideal: a volta-alvo com a folga que você definiu, para aproveitar bandeira amarela, kart com problema ou piloto cansado. Prazo: o último momento em que ainda dá para cumprir todas as paradas dentro das regras.</p>
         </section>
 
         <div id="warnings" class="alerts"></div>
@@ -170,6 +171,12 @@
             <p class="hint" id="lvNextSub"></p>
           </div>
 
+          <div class="board sign-board" id="lvSign">
+            <span class="board-label">Mostre na placa</span>
+            <div class="sign-text" id="lvSignText">OK</div>
+            <span class="sign-hint" id="lvSignHint">Ritmo bom. Mantém.</span>
+          </div>
+
           <div id="lvAlerts" class="alerts"></div>
 
           <div class="action-row">
@@ -201,10 +208,10 @@
           <div class="card pit-steps">
             <label class="field"><span>Quem sai do box</span><select id="pitPilotIn"></select></label>
             <ol class="steps" id="pitSteps">
-              <li data-from="0" data-to="60"><b>0:00–1:00</b> Troca de piloto, lastro e banco.</li>
-              <li data-from="60" data-to="180"><b>1:00–3:00</b> Briefing: ritmo-alvo, voltas do stint, rivais. Água para quem saiu.</li>
+              <li data-from="0" data-to="60"><b>0:00–1:00</b> Celular passa para quem saiu do kart. Troca de piloto, lastro e banco.</li>
+              <li data-from="60" data-to="180"><b>1:00–3:00</b> Quem saiu conta como está o kart. Quem entra repete o plano do stint. Água.</li>
               <li data-from="180" data-to="240"><b>3:00–4:00</b> Piloto sentado, cinto, luvas, viseira limpa.</li>
-              <li data-from="240" data-to="9999"><b>4:00–5:00</b> Kart pronto. Contagem em voz alta nos 10 s finais.</li>
+              <li data-from="240" data-to="9999"><b>4:00–5:00</b> Kart pronto. Quem está com o celular conta os 10 s finais em voz alta.</li>
             </ol>
           </div>
           <div class="action-row">
@@ -276,69 +283,98 @@
   <!-- ============ MANUAL ============ -->
   <section id="tab-manual" class="panel manual" role="tabpanel" aria-labelledby="t-manual" hidden>
     <div class="panel-head">
-      <h1>Como sair na frente</h1>
-      <p class="lede">Estratégia da <span data-m="team">Aristeu Just Motors</span> para <span data-m="race">2 h</span> com <span data-m="stops">3</span> paradas obrigatórias de <span data-m="minpit">5:00</span>. Os números abaixo seguem a configuração do Plano.</p>
+      <h1>Estratégia dos dois pilotos</h1>
+      <p class="lede">A <span data-m="team">Aristeu Just Motors</span> corre contra o relógio, não contra as outras equipes. Ninguém precisa acompanhar os rivais: o plano é fixo, o app avisa quando parar e o piloto que está descansando cuida do box.</p>
     </div>
 
     <article class="prose">
       <h2>Os números da prova</h2>
       <dl class="facts">
-        <div><dt>Tempo parado obrigatório</dt><dd><span data-m="pittotal">15:00</span></dd><p>Igual para todo mundo. Ninguém ganha aqui; só perde quem sai atrasado.</p></div>
+        <div><dt>Tempo parado obrigatório</dt><dd><span data-m="pittotal">15:00</span></dd><p>Igual para todo mundo. Só perde quem sai atrasado do box.</p></div>
         <div><dt>Tempo de pista</dt><dd><span data-m="drive">1:44:20</span></dd><p>Prova menos paradas e perdas de pit lane.</p></div>
         <div><dt>Voltas estimadas</dt><dd><span data-m="laps">129,9</span></dd><p>Com volta média de <span data-m="lap">48,20</span> s.</p></div>
         <div><dt>Stint médio</dt><dd><span data-m="stint">26:05</span></dd><p>Cerca de <span data-m="stintlaps">32</span> voltas. Cada piloto faz <span data-m="stintsper">2</span> stints.</p></div>
       </dl>
 
-      <h2>Onde a corrida é ganha, do maior ganho para o menor</h2>
+      <h2>Ficha de cada piloto</h2>
+      <p>Cada um decora a sua ficha. Os horários são do relógio da prova e as voltas contam desde a largada.</p>
+      <div class="pilot-cards" id="pilotCards"></div>
+
+      <h2>Onde a corrida é ganha</h2>
+      <p>Tudo aqui depende só da equipe. Do maior ganho para o menor:</p>
       <ol class="ranked">
         <li>
-          <h3>Ritmo e consistência</h3>
+          <h3>Ritmo constante</h3>
           <p>Em <span data-m="lapsint">130</span> voltas, 0,1 s por volta vira <b><span data-m="pace01">13</span> s</b> no fim. 0,3 s vira <b><span data-m="pace03">39</span> s</b>, quase uma volta. Rodar sempre perto do tempo-alvo vale mais que uma volta voadora seguida de três erros.</p>
-          <p>Use a aba Ao vivo: quando a média das 3 últimas voltas passa 0,5 s do alvo, o app avisa. Mostre na placa e corrija o traçado ou a pilotagem antes de virar hábito.</p>
         </li>
         <li>
-          <h3>Parada cirúrgica: sair em 5:00, nem um segundo depois</h3>
-          <p>A maioria das equipes perde de 5 a 15 s por parada por desatenção. <b><span data-m="slacklap">16</span> s de sobra em cada uma das <span data-m="stops">3</span> paradas custam uma volta inteira.</b> O cronômetro do box conta regressivo, apita nos 60, 30 e 10 s finais e mostra LIBERA no tempo mínimo mais a folga de segurança.</p>
-          <p>A troca de piloto e de lastro cabe dentro dos 5 minutos. Ela não custa nada se estiver ensaiada; só não pode atrasar a liberação.</p>
+          <h3>Zero incidente</h3>
+          <p>Uma rodada custa de 10 a 30 s. Um toque que entorta o kart estraga o resto da prova. Na largada e no meio do pelotão, a prioridade é chegar inteiro.</p>
         </li>
         <li>
-          <h3>Parar sob bandeira amarela ou safety car</h3>
-          <p>Todas as equipes vão ficar 5 minutos paradas três vezes. Quem para enquanto o pelotão anda devagar perde menos terreno. Com volta de amarela em <span data-m="ylap">65</span> s, <b>cada volta de amarela durante a sua parada vale cerca de <span data-m="ygain">17</span> s</b> sobre quem parou com bandeira verde.</p>
-          <p>Por isso o plano trabalha com janela, e não com volta fixa. Se a amarela aparece com a janela aberta, chame para o box. Confirme antes se o regulamento fecha o pit sob safety car.</p>
+          <h3>Sair do box em 5:00, nem um segundo depois</h3>
+          <p><b><span data-m="slacklap">16</span> s de sobra em cada uma das <span data-m="stops">3</span> paradas custam uma volta inteira.</b> O cronômetro do box conta regressivo, apita nos 60, 30 e 10 s finais e mostra LIBERA.</p>
         </li>
         <li>
-          <h3>Ar limpo e tráfego</h3>
-          <p>Se o piloto está preso atrás de um kart mais lento e a janela está aberta, antecipe a parada (undercut). Ele volta em pista livre enquanto o rival segue travado. Evite parar na mesma volta de várias equipes: fila na entrada e briga na saída custam segundos.</p>
+          <h3>Parar na bandeira amarela</h3>
+          <p>A bandeira amarela todo mundo vê, não precisa olhar ninguém. Com volta de amarela em <span data-m="ylap">65</span> s, <b>cada volta de amarela durante a sua parada vale cerca de <span data-m="ygain">17</span> s</b>. Se a amarela aparecer com <span data-m="ymin">15</span> min ou mais de stint e a janela aberta, o app mostra BOX na placa.</p>
         </li>
         <li>
-          <h3>Entrada e saída do pit</h3>
-          <p>Entre no limite de velocidade sem frear antes da hora e acelere tudo a partir da linha de saída. Na volta de saída o pneu está frio depois de 5 minutos parado: freie um pouco antes nas duas primeiras curvas. Rodar ou travar ali joga fora a parada perfeita.</p>
+          <h3>Entrada e saída do box</h3>
+          <p>Volta de entrada forte até o limite de velocidade do pit. Volta de saída com cuidado: pneu frio depois de 5 minutos parado.</p>
         </li>
       </ol>
 
-      <h2>Escala dos pilotos</h2>
-      <p>Plano padrão em 4 stints alternados: <b><span data-m="p1">Kaka</span></b> larga e faz os stints 1 e 3. <b><span data-m="p2">Guilherme Coutinho</span></b> faz os stints 2 e 4 e recebe a bandeira quadriculada.</p>
+      <h2>Regras na pista</h2>
       <ul>
-        <li><b>Quem larga:</b> o piloto mais frio no meio do pelotão. Na largada se perde muito mais por toque do que se ganha por ultrapassagem.</li>
-        <li><b>Quem fecha:</b> o mais consistente e mais forte em disputa direta, porque o último stint decide posição.</li>
-        <li><b>Ritmos diferentes:</b> lance a volta média de cada um no Plano e toque em Otimizar pelo ritmo. O mais rápido ganha mais tempo de pista até o limite de stint. Com 0,4 s de diferença, isso vale perto de 9 s na prova.</li>
-        <li><b>Stint máximo:</b> acima de 30 a 35 minutos o piloto amador cansa e o tempo de volta sobe. Com stints de cerca de 26 minutos, os dois rodam descansados.</li>
+        <li><b>Largada e volta 1:</b> sem disputa e sem toque. São 2 horas.</li>
+        <li><b>Ritmo:</b> pilote no seu tempo-alvo. Se a volta sair 0,5 s mais lenta, volte ao traçado de referência na seguinte.</li>
+        <li><b>Kart mais rápido chegando:</b> deixe passar no ponto mais fácil da pista. Defender custa mais tempo do que ceder.</li>
+        <li><b>Ultrapassagem:</b> se não passou em 2 voltas, desista e volte ao seu ritmo. Briga longa atrasa os dois.</li>
+        <li><b>Problema no kart</b> (freio, pneu, motor): entre no box. Uma parada antecipada custa menos que andar com kart ruim.</li>
+        <li><b>Obedeça a placa.</b> Não decida sozinho a hora da parada, a não ser por problema no kart.</li>
       </ul>
 
-      <h2>Protocolo dos 5 minutos de box</h2>
+      <h2>Placa de box</h2>
+      <p>Só quatro sinais. Na aba Ao vivo, o app mostra qual levantar.</p>
+      <div class="table-wrap">
+        <table class="data signs">
+          <thead><tr><th>Placa</th><th>O que o piloto faz</th></tr></thead>
+          <tbody>
+            <tr><td><b>3, 2</b></td><td>Faltam essas voltas para o box. Prepare a volta de entrada.</td></tr>
+            <tr><td><b>BOX</b></td><td>Entra no box na próxima passagem.</td></tr>
+            <tr><td><b>RITMO</b></td><td>As últimas 3 voltas estão mais lentas que o alvo. Volte ao traçado de referência.</td></tr>
+            <tr><td><b>OK</b></td><td>Tudo certo. Mantém.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>A troca com só os dois pilotos</h2>
+      <p>Quem está fora do kart faz o papel de equipe de box. Não precisa de mais ninguém.</p>
       <ol class="protocol">
-        <li><span class="t">0:00</span><p>Kart para na marcação. O cronometrista toca em Entrou no box e confirma o início com o relógio oficial.</p></li>
-        <li><span class="t">0:00–1:00</span><p>Troca de piloto. Lastro conferido para o peso mínimo. Banco e pedais, se o regulamento permitir ajuste.</p></li>
-        <li><span class="t">1:00–3:00</span><p>Briefing com quem entra: tempo-alvo, quantas voltas tem o stint, quem está perto na classificação. Quem saiu conta como está o kart (freio, pneu, saída de curva) e bebe água.</p></li>
-        <li><span class="t">3:00–4:00</span><p>Piloto sentado, cinto, luvas e viseira limpa. Ninguém mexe em mais nada.</p></li>
-        <li><span class="t">4:00–5:00</span><p>Kart pronto na posição de saída. Contagem em voz alta nos 10 segundos finais. Libera no LIBERA, nunca antes.</p></li>
+        <li><span class="t">Antes</span><p>Quem vai entrar já está de capacete e luvas, com o celular, no ponto de parada, 3 voltas antes do box.</p></li>
+        <li><span class="t">0:00</span><p>Kart para. Quem vai entrar toca Entrou no box e entrega o celular para quem saiu.</p></li>
+        <li><span class="t">0:00–1:00</span><p>Troca de piloto. Lastro conferido para o peso mínimo.</p></li>
+        <li><span class="t">1:00–3:00</span><p>Quem saiu conta como está o kart (freio, pneu, curva ruim). Quem entra repete em voz alta o alvo de volta e quantas voltas tem o stint. Água.</p></li>
+        <li><span class="t">3:00–4:00</span><p>Piloto sentado, cinto, luvas e viseira limpa.</p></li>
+        <li><span class="t">4:00–5:00</span><p>Quem está com o celular conta os 10 s finais em voz alta e libera no LIBERA, nunca antes.</p></li>
+        <li><span class="t">Depois</span><p>Quem saiu bebe água e descansa 10 minutos. Depois volta ao relógio e à placa. O resto do tempo é livre.</p></li>
       </ol>
+
+      <h2>Quando mudar o plano</h2>
+      <ul>
+        <li><b>Amarela</b> com <span data-m="ymin">15</span> min ou mais de stint e janela aberta: BOX.</li>
+        <li><b>Placa RITMO</b> três passagens seguidas com a janela aberta: piloto cansado, antecipe a parada.</li>
+        <li><b>Kart com problema:</b> antecipe a parada.</li>
+        <li><b>Prazo chegando:</b> BOX sempre, mesmo no meio de uma briga. Parada obrigatória perdida é punição certa.</li>
+        <li>Fora disso, siga o plano. Depois de uma parada antecipada o app redistribui o tempo entre os stints que faltam.</li>
+      </ul>
 
       <h2>Erros que tiram a equipe da briga</h2>
       <ul>
         <li>Sair do box antes do tempo mínimo. A punição costuma ser maior que todo o ganho da prova.</li>
-        <li>Deixar a última parada para o fim. Um safety car ou uma quebra e a parada obrigatória fica sem cumprir. O app mostra o prazo de cada parada.</li>
-        <li>Correr riscos na largada e na primeira volta. São 2 horas; uma posição no início vale pouco.</li>
+        <li>Deixar a última parada para o fim. Um safety car ou uma quebra e a parada obrigatória fica sem cumprir.</li>
+        <li>Correr riscos na largada e na primeira volta.</li>
         <li>Exceder a velocidade no pit lane.</li>
         <li>Piloto sem água e sem descanso entre stints.</li>
         <li>Lastro errado na troca, abaixo do peso mínimo.</li>
@@ -351,9 +387,8 @@
         <li>Existe período sem parada no início ou no fim da prova?</li>
         <li>O pit fecha sob safety car ou bandeira amarela?</li>
         <li>Qual o peso mínimo e como funciona o lastro?</li>
-        <li>Onde fica a linha de cronometragem em relação à saída do pit?</li>
       </ul>
-      <p class="hint">Lance esses números no Plano. O app recalcula janelas, prazos e voltas.</p>
+      <p class="hint">Lance esses números no Plano. O app recalcula janelas, prazos, voltas e as fichas dos pilotos.</p>
     </article>
   </section>
 </main>
